@@ -19,7 +19,7 @@ import (
 	"gopkg.in/robfig/cron.v2"
 )
 
-const MAX_JOB = 2
+const MAX_JOB = 5
 
 var (
 	rsDB  *gorm.DB
@@ -155,6 +155,7 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 		r.GET("/", dashboardHandler)
 		r.GET("/gallery", galleryHandler)
 		r.GET("/table", tableHandler)
+		r.GET("/log", logHandler)
 		r.GET("/details/:id", detailHandler)
 		r.GET("/details/:id/dom", detailDOMDownloadHandler)
 		r.GET("/submit", getSubmitHandler)
@@ -448,6 +449,17 @@ func tableHandler(c *gin.Context) {
 	rsDB.Preload("Network").Preload("Console").Preload("Technologies").Find(&urls)
 
 	c.HTML(http.StatusOK, "table.html", gin.H{
+		"Data": urls,
+	})
+}
+
+// tableHandler handles the URL table view
+func logHandler(c *gin.Context) {
+
+	var urls []storage.ScreenshotQueue
+	rsDB.Where("p_id = ?",-1).Find(&urls)
+
+	c.HTML(http.StatusOK, "log.html", gin.H{
 		"Data": urls,
 	})
 }

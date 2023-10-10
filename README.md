@@ -37,8 +37,11 @@ For installation information and other documentation, please refer to the wiki [
 
 ## New Feature  
 
-- Added queue for screenshot feature.  
+- [X] Added queue for screenshot feature.  
 
 ```
 curl -X POST http://localhost:7171/api/screenshot --data '{"url": "https://google.com"}'
-```
+```  
+
+- [X] New Tab: Error Log  
+- [] Callback function for other tools

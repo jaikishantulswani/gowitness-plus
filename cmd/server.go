@@ -181,7 +181,7 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 			api.GET("/detail/:id", apiDetailHandler)
 			api.GET("/detail/:id/screenshot", apiDetailScreenshotHandler)
 			api.POST("/screenshot", apiScreenshotHandler)
-			api.POST("/screenshot/v2", apiScreenshotHandler2) // screenshot with queue
+			api.POST("/screenshot/v2", apiScreenshotHandlerV2) // screenshot with queue
 		}
 
 		log.Info().Str("address", options.ServerAddr).Msg("server listening")
@@ -775,11 +775,12 @@ func apiScreenshotHandler(c *gin.Context) {
 }
 
 // apiScreenshot takes a screenshot of a URL
-func apiScreenshotHandler2(c *gin.Context) {
+func apiScreenshotHandlerV2(c *gin.Context) {
 
 	type Request struct {
 		URL     string   `json:"url"`
 		Headers []string `json:"headers"`
+		URLS	[]string   `json:"urls"`
 	}
 
 	var requestData Request
@@ -791,48 +792,63 @@ func apiScreenshotHandler2(c *gin.Context) {
 		return
 	}
 
-	targetURL, err := url.Parse(requestData.URL)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "error",
-			"message": err.Error(),
+	var c_urls []string
+	if requestData.URL != "" {
+		c_urls = append(c_urls, requestData.URL)
+	} else if len(requestData.URLS) != 0 {
+		c_urls = requestData.URLS
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  "Empty input",
 		})
 		return
 	}
 
-	if !options.AllowInsecureURIs {
-		if !strings.HasPrefix(targetURL.Scheme, "http") {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"status":  "error",
-				"message": "only http(s) urls are accepted",
-			})
-			return
+	var errorsMsg []string
+
+	for _, c_url := range c_urls {
+		targetURL, err := url.Parse(c_url)
+		if err != nil {
+			errorsMsg = append(errorsMsg,err.Error())
+			continue
+		}
+	
+		if !options.AllowInsecureURIs {
+			if !strings.HasPrefix(targetURL.Scheme, "http") {
+				errorsMsg = append(errorsMsg,"Not AllowInsecureURIs")
+				continue
+			}
+		}
+	
+		if err = options.PrepareScreenshotPath(); err != nil {
+			errorsMsg = append(errorsMsg,err.Error())
+			continue
+		}
+	
+		screenshot_queue := storage.ScreenshotQueue{URL: targetURL.String(), PID: 0}
+	
+		result := rsDB.Create(&screenshot_queue) 
+		if result.Error!=nil{
+			errorsMsg = append(errorsMsg,result.Error.Error())
+			continue
 		}
 	}
 
-	if err = options.PrepareScreenshotPath(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "error",
-			"message": err.Error(),
+	if len(errorsMsg) != 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  errorsMsg,
 		})
 		return
 	}
 
-	screenshot_queue := storage.ScreenshotQueue{URL: targetURL.String(), PID: 0}
-
-	result := rsDB.Create(&screenshot_queue) 
-	if result.Error!=nil{
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "error",
-			"message": result.Error,
-		})
-		return
-	}
 	
 
 	c.JSON(http.StatusCreated, gin.H{
-		"status": "created "+ strconv.FormatUint(uint64(screenshot_queue.ID), 10),
+		"status": "created ",
 	})
+
 }
 
 

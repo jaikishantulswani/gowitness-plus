@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-    🔍 gowitness
+    🔍 gowitness v2
   <br>
   <br>
 </h1>
@@ -13,15 +13,6 @@
 </p>
 <br>
 
-## introduction
-
-`gowitness` is a website screenshot utility written in Golang, that uses Chrome Headless to generate screenshots of web interfaces using the command line, with a handy report viewer to process results. Both Linux and macOS is supported, with Windows support mostly working.
-
-Inspiration for `gowitness` comes from [Eyewitness](https://github.com/ChrisTruncer/EyeWitness). If you are looking for something with lots of extra features, be sure to check it out along with these [other](https://github.com/afxdub/http-screenshot-html) [projects](https://github.com/breenmachine/httpscreenshot).
-
-## documentation
-
-For installation information and other documentation, please refer to the wiki [here](https://github.com/sensepost/gowitness/wiki).
 
 ## screenshots
 
@@ -37,11 +28,17 @@ For installation information and other documentation, please refer to the wiki [
 
 ## New Feature  
 
-- [X] Added queue for screenshot feature.  
+- [X] Added queue for screenshot feature (MAX_JOB=5).  
+[https://github.com/X-Cotang/gowitness-wrap/blob/51092960f4eccb33d937f0bdec99119057f9ca53/cmd/server.go#L22](https://github.com/X-Cotang/gowitness-wrap/blob/51092960f4eccb33d937f0bdec99119057f9ca53/cmd/server.go#L22)  
 
 ```
-curl -X POST http://localhost:7171/api/screenshot --data '{"url": "https://google.com"}'
+curl -X POST http://localhost:7171/api/screenshot/v2 --data '{"url": "https://google.com"}'
 ```  
 
 - [X] New Tab: Error Log  
+- [X] Array input  
+
+```
+curl -X POST http://localhost:7171/api/screenshot/v2 --data '{"urls": ["https://google.com","https://youtube.com"]}'
+```
 - [ ] Callback function for other tools

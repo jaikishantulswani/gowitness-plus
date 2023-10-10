@@ -44,4 +44,4 @@ curl -X POST http://localhost:7171/api/screenshot --data '{"url": "https://googl
 ```  
 
 - [X] New Tab: Error Log  
-- [] Callback function for other tools
+- [ ] Callback function for other tools

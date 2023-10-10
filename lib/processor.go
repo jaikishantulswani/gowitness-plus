@@ -23,6 +23,7 @@ type Processor struct {
 	URL                *url.URL
 	ScreenshotPath     string
 	ScreenshotFileName string
+	QID				   uint
 
 	// file name & file path
 	fn string
@@ -48,6 +49,7 @@ func (p *Processor) Gowitness() (err error) {
 	p.init()
 
 	if err = p.preflight(); err != nil {
+		p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{ PID: -1, ErrorMsg: err.Error()})
 		log.Error().Err(err).Msg("preflight request failed")
 		return
 	}
@@ -57,6 +59,7 @@ func (p *Processor) Gowitness() (err error) {
 	if (len(p.Chrome.ScreenshotCodes) > 0) &&
 		!SliceContainsInt(p.Chrome.ScreenshotCodes, p.preflightResult.HTTPResponse.StatusCode) {
 
+			p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{ PID: -1, ErrorMsg: "response code not in allowed screenshot http response codes. skipping."})
 		log.Warn().Int("response-code", p.preflightResult.HTTPResponse.StatusCode).
 			Msg("response code not in allowed screenshot http response codes. skipping.")
 
@@ -64,21 +67,25 @@ func (p *Processor) Gowitness() (err error) {
 	}
 
 	if err = p.takeScreenshot(); err != nil {
+		p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{ PID: -1, ErrorMsg: err.Error()})
 		log.Error().Err(err).Msg("failed to take screenshot")
 		return
 	}
 
 	if err = p.persistRequest(); err != nil {
+		p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{ PID: -1, ErrorMsg: err.Error()})
 		log.Error().Err(err).Msg("failed to store request information")
 		return
 	}
 
 	if err = p.storePerceptionHash(); err != nil {
+		p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{ PID: -1, ErrorMsg: err.Error()})
 		log.Error().Err(err).Msg("failed to calculate and save a perception hash")
 		return
 	}
 
 	if err = p.writeScreenshot(); err != nil {
+		p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{ PID: -1, ErrorMsg: err.Error()})
 		log.Error().Err(err).Msg("failed to save screenshot buffer")
 		return
 	}

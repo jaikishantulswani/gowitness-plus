@@ -176,3 +176,11 @@ type NetworkLog struct {
 	Time        time.Time
 	Error       string
 }
+
+type ScreenshotQueue struct {
+	gorm.Model
+
+	URL            string
+	PID			   int
+	ErrorMsg       string `gorm:"default:''"`
+}

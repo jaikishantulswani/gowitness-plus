@@ -88,7 +88,7 @@ func (db *Db) Get() (*gorm.DB, error) {
 	}
 
 	if !db.SkipMigration {
-		conn.AutoMigrate(&URL{}, &Header{}, &TLS{}, &TLSCertificate{}, &TLSCertificateDNSName{}, &Technologie{}, &ConsoleLog{}, &NetworkLog{})
+		conn.AutoMigrate(&URL{}, &Header{}, &TLS{}, &TLSCertificate{}, &TLSCertificateDNSName{}, &Technologie{}, &ConsoleLog{}, &NetworkLog{}, &ScreenshotQueue{})
 	}
 
 	return conn, nil

@@ -9,13 +9,17 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sensepost/gowitness/lib"
 	"github.com/sensepost/gowitness/storage"
 	"github.com/spf13/cobra"
 	"gorm.io/gorm"
+	"gopkg.in/robfig/cron.v2"
 )
+
+const MAX_JOB = 2
 
 var (
 	rsDB  *gorm.DB
@@ -78,6 +82,52 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 			gin.SetMode(gin.ReleaseMode)
 		}
 
+		c := cron.New()
+		c.AddFunc("@every 0h0m30s", func() { 
+			// fmt.Println("Every 30 second")
+
+			var count int64
+			// var ScQueue []storage.ScreenshotQueue
+			rsDB.Model(&storage.ScreenshotQueue{}).Where("p_id > 1").Count(&count)
+			n := MAX_JOB - count
+			if n < 1 {
+				return
+			}
+
+			var ScQueues []storage.ScreenshotQueue
+			rsDB.Where("p_id = ?", 0).Limit(int(n)).Find(&ScQueues)
+			var wg sync.WaitGroup
+			for _, row := range ScQueues {
+				targetURL, err := url.Parse(row.URL)
+				if err != nil {
+					continue
+				}
+				if err = options.PrepareScreenshotPath(); err != nil {
+					return
+				}
+
+				rsDB.Model(&storage.ScreenshotQueue{}).Where("ID = ?", row.ID).Update("PID", 1)
+				log.Info().Str("URL: ", row.URL).Msg("Queue")
+				wg.Add(1)
+				go func(u *url.URL,qid uint) {
+					p := &lib.Processor{
+						Logger:         options.Logger,
+						Db:             rsDB,
+						Chrome:         chrm,
+						URL:            u,
+						QID:			qid,
+						ScreenshotPath: options.ScreenshotPath,
+					}
+			
+					p.Gowitness()
+				}(targetURL,row.ID)
+
+			}
+			wg.Wait()
+		})
+
+		c.Start()
+
 		r := gin.Default()
 		r.Use(themeChooser(&theme))
 
@@ -124,11 +174,13 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 		// json api routes
 		api := r.Group("/api")
 		{
+			// api.GET("/test", apiURLHandler2)
 			api.GET("/list", apiURLHandler)
 			api.GET("/search", apiSearchHandler)
 			api.GET("/detail/:id", apiDetailHandler)
 			api.GET("/detail/:id/screenshot", apiDetailScreenshotHandler)
 			api.POST("/screenshot", apiScreenshotHandler)
+			api.POST("/screenshot/v2", apiScreenshotHandler2) // screenshot with queue
 		}
 
 		log.Info().Str("address", options.ServerAddr).Msg("server listening")
@@ -709,3 +761,80 @@ func apiScreenshotHandler(c *gin.Context) {
 		"status": "created",
 	})
 }
+
+// apiScreenshot takes a screenshot of a URL
+func apiScreenshotHandler2(c *gin.Context) {
+
+	type Request struct {
+		URL     string   `json:"url"`
+		Headers []string `json:"headers"`
+	}
+
+	var requestData Request
+	if err := c.ShouldBindJSON(&requestData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	targetURL, err := url.Parse(requestData.URL)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "error",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	if !options.AllowInsecureURIs {
+		if !strings.HasPrefix(targetURL.Scheme, "http") {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  "error",
+				"message": "only http(s) urls are accepted",
+			})
+			return
+		}
+	}
+
+	if err = options.PrepareScreenshotPath(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "error",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	screenshot_queue := storage.ScreenshotQueue{URL: targetURL.String(), PID: 0}
+
+	result := rsDB.Create(&screenshot_queue) 
+	if result.Error!=nil{
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "error",
+			"message": result.Error,
+		})
+		return
+	}
+	
+
+	c.JSON(http.StatusCreated, gin.H{
+		"status": "created "+ strconv.FormatUint(uint64(screenshot_queue.ID), 10),
+	})
+}
+
+
+// func apiURLHandler2(c *gin.Context) {
+// 	var count int64
+// 	rsDB.Model(&storage.ScreenshotQueue{}).Where("p_id > 0").Count(&count)
+// 	fmt.Println(count)
+// 	rsDB.Model(&storage.ScreenshotQueue{}).Where("ID = ?", 1).Update("PID", 1)
+// 	var st_sc []storage.ScreenshotQueue
+// 	rsDB.Find(&st_sc)
+// 	for _, row := range st_sc {
+// 		fmt.Println("values: ", row.ID, row.URL)
+// 	}
+// 	c.JSON(http.StatusCreated, gin.H{
+// 		"status": st_sc,
+// 	})
+// }

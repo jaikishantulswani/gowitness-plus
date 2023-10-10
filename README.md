@@ -34,3 +34,11 @@ For installation information and other documentation, please refer to the wiki [
 ## license
 
 `gowitness` is licensed under a [GNU General Public v3 License](https://www.gnu.org/licenses/gpl-3.0.en.html). Permissions beyond the scope of this license may be available at <http://sensepost.com/contact/>.
+
+## New Feature  
+
+- Added queue for screenshot feature.  
+
+```
+curl -X POST http://localhost:7171/api/screenshot --data '{"url": "https://google.com"}'
+```

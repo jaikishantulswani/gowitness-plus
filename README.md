@@ -40,6 +40,16 @@ curl -X POST http://localhost:7171/api/screenshot/v2 --data '{"url": "https://go
 
 ```
 curl -X POST http://localhost:7171/api/screenshot/v2 --data '{"urls": ["https://google.com","https://youtube.com"]}'
+```  
+
+- [X] Docker: Nginx + Self-Signed SSL Certificate + htpasswd
+
 ```
+htpasswd nginx/.htpasswd admin
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout nginx/ssl/nginx-selfsigned.key -out nginx/ssl/nginx-selfsigned.crt
+sudo openssl dhparam -out nginx/ssl/dhparam.pem 2048
+docker-compose up
+```  
+
 - [ ] Callback function for other tools
 - [ ] Truncate old data

@@ -42,3 +42,4 @@ curl -X POST http://localhost:7171/api/screenshot/v2 --data '{"url": "https://go
 curl -X POST http://localhost:7171/api/screenshot/v2 --data '{"urls": ["https://google.com","https://youtube.com"]}'
 ```
 - [ ] Callback function for other tools
+- [ ] Truncate old data

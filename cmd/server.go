@@ -159,6 +159,7 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 		r.GET("/details/:id", detailHandler)
 		r.GET("/details/:id/dom", detailDOMDownloadHandler)
 		r.GET("/submit", getSubmitHandler)
+		// r.GET("/truncate", getTruncateHandler)
 		r.POST("/submit", submitHandler)
 		r.POST("/search", searchHandler)
 
@@ -295,6 +296,21 @@ func dashboardHandler(c *gin.Context) {
 // getSubmitHandler handles generating the view to submit urls
 func getSubmitHandler(c *gin.Context) {
 	c.HTML(http.StatusOK, "submit.html", nil)
+}
+
+func getTruncateHandler(c *gin.Context) {
+	// rsDB.Exec("TRUNCATE TABLE screenshot_queues,network_logs,console_logs,technologies,tls_certificate_dns_names,tls_certificates,tls,headers,urls")
+	rsDB.Exec("DELETE FROM  screenshot_queues")
+	rsDB.Exec("DELETE FROM  network_logs")
+	rsDB.Exec("DELETE FROM  console_logs")
+	rsDB.Exec("DELETE FROM  technologies")
+	rsDB.Exec("DELETE FROM  tls_certificate_dns_names")
+	rsDB.Exec("DELETE FROM  tls_certificates")
+	rsDB.Exec("DELETE FROM tls")
+	rsDB.Exec("DELETE FROM headers")
+	rsDB.Exec("DELETE FROM urls")
+	os.RemoveAll("screenshots")
+	c.Redirect(http.StatusMovedPermanently, "/")
 }
 
 // submitHandler handles url submissions

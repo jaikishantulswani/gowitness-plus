@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"html/template"
-	"io/fs"
+	// "html/template"
+	// "io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -12,6 +12,8 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-contrib/static"
+	"github.com/gin-contrib/cors"
 	"github.com/sensepost/gowitness/lib"
 	"github.com/sensepost/gowitness/storage"
 	"github.com/spf13/cobra"
@@ -129,7 +131,10 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 		c.Start()
 
 		r := gin.Default()
-		r.Use(themeChooser(&theme))
+		r.Use(cors.New(cors.Config{
+			AllowOrigins:     []string{"*"},
+		  }))
+		// r.Use(themeChooser(&theme))
 
 		// add / suffix to the base url so that we can be certain about
 		// the trim in the template helper
@@ -137,46 +142,61 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 			options.BasePath += "/"
 		}
 
-		log.Info().Str("base-path", options.BasePath).Msg("basepath")
+		// log.Info().Str("base-path", options.BasePath).Msg("basepath")
 
-		funcMap := template.FuncMap{
-			"GetTheme": getTheme,
-			"Contains": func(full string, search string) bool {
-				return strings.Contains(full, search)
-			},
-			"URL": func(url string) string {
-				return options.BasePath + strings.TrimPrefix(url, "/")
-			},
-		}
-		tmpl := template.Must(template.New("").Funcs(funcMap).ParseFS(Embedded, "web/ui-templates/*.html"))
-		r.SetHTMLTemplate(tmpl)
+		// funcMap := template.FuncMap{
+		// 	"GetTheme": getTheme,
+		// 	"Contains": func(full string, search string) bool {
+		// 		return strings.Contains(full, search)
+		// 	},
+		// 	"URL": func(url string) string {
+		// 		return options.BasePath + strings.TrimPrefix(url, "/")
+		// 	},
+		// }
+		// tmpl := template.Must(template.New("").Funcs(funcMap).ParseFS(Embedded, "web/ui-templates/*.html"))
+		// r.SetHTMLTemplate(tmpl)
 
-		// web ui routes
-		r.GET("/", dashboardHandler)
-		r.GET("/gallery", galleryHandler)
-		r.GET("/table", tableHandler)
-		r.GET("/log", logHandler)
-		r.GET("/details/:id", detailHandler)
-		r.GET("/details/:id/dom", detailDOMDownloadHandler)
-		r.GET("/submit", getSubmitHandler)
-		// r.GET("/truncate", getTruncateHandler)
-		r.POST("/submit", submitHandler)
-		r.POST("/search", searchHandler)
+		// // web ui routes
+		// r.GET("/", dashboardHandler)
+		// r.GET("/gallery", galleryHandler)
+		// r.GET("/table", tableHandler)
+		// r.GET("/log", logHandler)
+		// r.GET("/details/:id", detailHandler)
+		// r.GET("/details/:id/dom", detailDOMDownloadHandler)
+		// r.GET("/submit", getSubmitHandler)
+		// // r.GET("/truncate", getTruncateHandler)
+		// r.POST("/submit", submitHandler)
+		// r.POST("/search", searchHandler)
 
-		// static assets & raw screenshot files
-		assetFs, err := fs.Sub(Embedded, "web/assets")
-		if err != nil {
-			log.Fatal().Err(err).Msg("could not fs.Sub Assets")
-		}
+		// // static assets & raw screenshot files
+		// assetFs, err := fs.Sub(Embedded, "web/dist/assets")
+		// if err != nil {
+		// 	log.Fatal().Err(err).Msg("could not fs.Sub Assets")
+		// }
 
-		// assets & screenshots
-		r.StaticFS("/assets/", http.FS(assetFs))
+		// // assets & screenshots
+		// r.StaticFS("/assets/", http.FS(assetFs))
 		r.StaticFS("/screenshots", http.Dir(options.ScreenshotPath))
 
+		// dist, _ := fs.Sub(Embedded, "web/dist")
+		// r.StaticFS("/", http.FS(dist))
+
+		r.Use(static.Serve("/", static.LocalFile("web/dist", false)))
+		r.Use(static.Serve("/gallery", static.LocalFile("web/dist", false)))
+		r.Use(static.Serve("/table", static.LocalFile("web/dist", false)))
+		r.Use(static.Serve("/submit", static.LocalFile("web/dist", false)))
+		r.Use(static.Serve("/log", static.LocalFile("web/dist", false)))
 		// json api routes
 		api := r.Group("/api")
 		{
 			// api.GET("/test", apiURLHandler2)
+			// For web
+			api.GET("/log", apiLogHandler)
+			api.GET("/gallery", apiGalleryHandler)
+			api.GET("/table", apiTableHandler)
+			
+			
+			// For other system
 			api.GET("/list", apiURLHandler)
 			api.GET("/search", apiSearchHandler)
 			api.GET("/detail/:id", apiDetailHandler)
@@ -616,6 +636,54 @@ func getPageLimit(c *gin.Context) (page int, limit int, err error) {
 // API request handlers follow here
 // --
 
+func apiTableHandler(c *gin.Context) {
+
+	var urls []storage.URL
+	rsDB.Preload("Network").Preload("Console").Preload("Technologies").Find(&urls)
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": urls,
+	})
+}
+
+func apiGalleryHandler(c *gin.Context) {
+
+	currPage, limit, err := getPageLimit(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "error",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	pager := &lib.Pagination{
+		DB:       rsDB,
+		CurrPage: currPage,
+		Limit:    limit,
+	}
+
+	// perception hashing
+	if strings.TrimSpace(c.Query("perception_sort")) == "true" {
+		pager.OrderBy = []string{"perception_hash desc"}
+	}
+
+	var urls []storage.URL
+	page, err := pager.Page(&urls)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "error",
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": page,
+	})
+}
+
+
 // apiURLHandler returns the list of URLS in the database
 func apiURLHandler(c *gin.Context) {
 
@@ -867,18 +935,46 @@ func apiScreenshotHandlerV2(c *gin.Context) {
 
 }
 
+func apiLogHandler(c *gin.Context) {
+	var urls []storage.ScreenshotQueue
+	rsDB.Where("p_id = ?",-1).Find(&urls)
 
-// func apiURLHandler2(c *gin.Context) {
-// 	var count int64
-// 	rsDB.Model(&storage.ScreenshotQueue{}).Where("p_id > 0").Count(&count)
-// 	fmt.Println(count)
-// 	rsDB.Model(&storage.ScreenshotQueue{}).Where("ID = ?", 1).Update("PID", 1)
-// 	var st_sc []storage.ScreenshotQueue
-// 	rsDB.Find(&st_sc)
-// 	for _, row := range st_sc {
-// 		fmt.Println("values: ", row.ID, row.URL)
-// 	}
-// 	c.JSON(http.StatusCreated, gin.H{
-// 		"status": st_sc,
-// 	})
-// }
+	// var count int64
+	// rsDB.Model(&storage.ScreenshotQueue{}).Where("p_id > 0").Count(&count)
+	// fmt.Println(count)
+	// rsDB.Model(&storage.ScreenshotQueue{}).Where("ID = ?", 1).Update("PID", 1)
+	// var st_sc []storage.ScreenshotQueue
+	// rsDB.Find(&st_sc)
+	// for _, row := range st_sc {
+	// 	fmt.Println("values: ", row.ID, row.URL)
+	// }
+	// c.JSON(http.StatusCreated, gin.H{
+	// 	"status": st_sc,
+	// })
+	c.JSON(http.StatusOK, gin.H{
+		"status": true,
+		"data": urls,
+	})
+}
+
+func apiURLHandler2(c *gin.Context) {
+	var urls []storage.ScreenshotQueue
+	rsDB.Where("p_id = ?",-1).Find(&urls)
+
+	// var count int64
+	// rsDB.Model(&storage.ScreenshotQueue{}).Where("p_id > 0").Count(&count)
+	// fmt.Println(count)
+	// rsDB.Model(&storage.ScreenshotQueue{}).Where("ID = ?", 1).Update("PID", 1)
+	// var st_sc []storage.ScreenshotQueue
+	// rsDB.Find(&st_sc)
+	// for _, row := range st_sc {
+	// 	fmt.Println("values: ", row.ID, row.URL)
+	// }
+	// c.JSON(http.StatusCreated, gin.H{
+	// 	"status": st_sc,
+	// })
+	c.JSON(http.StatusOK, gin.H{
+		"status": true,
+		"data": urls,
+	})
+}

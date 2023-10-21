@@ -93,7 +93,7 @@ export default {
   },
 
   async mounted() {
-    const res = await axios.get("http://localhost:7171/api/table");
+    const res = await axios.get("/api/table");
     if (res.status == 200) {
       this.records = res.data.data;
     }

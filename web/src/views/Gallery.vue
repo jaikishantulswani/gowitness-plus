@@ -132,21 +132,21 @@ export default {
     }
 
     const prevPage = async ()=>{
-      const res = await axios.get(`http://localhost:7171/api//gallery?perception_sort=true&limit=${ galleries.Limit }&page=${ galleries.PrevPage }`);
+      const res = await axios.get(`/api//gallery?perception_sort=true&limit=${ galleries.Limit }&page=${ galleries.PrevPage }`);
       if (res.status == 200) {
         this.galleries = res.data.data;
       }
     }
 
     const nextPage = async ()=>{
-      const res = await axios.get(`http://localhost:7171/api//gallery?perception_sort=true&limit=${ galleries.Limit }&page=${ galleries.NextPage  }`);
+      const res = await axios.get(`/api//gallery?perception_sort=true&limit=${ galleries.Limit }&page=${ galleries.NextPage  }`);
       if (res.status == 200) {
         this.galleries = res.data.data;
       }
     }
 
     const goToPage = async (page)=>{
-      const res = await axios.get(`http://localhost:7171/api//gallery?perception_sort=true&limit=${ galleries.Limit }&page=${ page }`);
+      const res = await axios.get(`/api//gallery?perception_sort=true&limit=${ galleries.Limit }&page=${ page }`);
       if (res.status == 200) {
         this.galleries = res.data.data;
       }
@@ -173,7 +173,7 @@ export default {
   },
 
   async mounted() {
-    const res = await axios.get("http://localhost:7171/api/gallery");
+    const res = await axios.get("/api/gallery");
     if (res.status == 200) {
       this.galleries = res.data.data;
     }

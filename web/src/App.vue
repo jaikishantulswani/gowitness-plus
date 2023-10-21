@@ -83,7 +83,7 @@ export default {
   },
 
   async mounted() {
-    const res = await axios.get("http://localhost:7171/api/statistic");
+    const res = await axios.get("/api/statistic");
     if (res.status == 200) {
       this.statistics = res.data;
     }

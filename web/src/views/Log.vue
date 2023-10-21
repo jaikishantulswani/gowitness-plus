@@ -36,7 +36,7 @@ export default {
   },
 
   async mounted() {
-    const res = await axios.get('http://localhost:7171/api/log')
+    const res = await axios.get('/api/log')
     if(res.status == 200){
        this.logs = res.data.data 
     }

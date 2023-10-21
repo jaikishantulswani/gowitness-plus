@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	// "html/template"
-	// "io/fs"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -169,13 +169,13 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 		// r.POST("/search", searchHandler)
 
 		// // static assets & raw screenshot files
-		// assetFs, err := fs.Sub(Embedded, "web/dist/assets")
-		// if err != nil {
-		// 	log.Fatal().Err(err).Msg("could not fs.Sub Assets")
-		// }
+		assetFs, err := fs.Sub(Embedded, "web/dist/assets")
+		if err != nil {
+			log.Fatal().Err(err).Msg("could not fs.Sub Assets")
+		}
 
 		// // assets & screenshots
-		// r.StaticFS("/assets/", http.FS(assetFs))
+		r.StaticFS("/assets/", http.FS(assetFs))
 		r.StaticFS("/screenshots", http.Dir(options.ScreenshotPath))
 
 		// dist, _ := fs.Sub(Embedded, "web/dist")
@@ -191,6 +191,8 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 		{
 			// api.GET("/test", apiURLHandler2)
 			// For web
+			
+			api.GET("/statistic", apiStatisticHandler)
 			api.GET("/log", apiLogHandler)
 			api.GET("/gallery", apiGalleryHandler)
 			api.GET("/table", apiTableHandler)
@@ -636,6 +638,39 @@ func getPageLimit(c *gin.Context) (page int, limit int, err error) {
 // API request handlers follow here
 // --
 
+func apiStatisticHandler(c *gin.Context) {
+
+	// get the sqlite db size
+	var size int64
+	rsDB.Raw("SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size();").Take(&size)
+
+	// count some statistics
+
+	var urlCount int64
+	rsDB.Model(&storage.URL{}).Count(&urlCount)
+
+	var certCount int64
+	rsDB.Model(&storage.TLS{}).Count(&certCount)
+
+	var certDNSNameCount int64
+	rsDB.Model(&storage.TLSCertificateDNSName{}).Count(&certDNSNameCount)
+
+	var headerCount int64
+	rsDB.Model(&storage.Header{}).Count(&headerCount)
+
+	var techCount int64
+	rsDB.Model(&storage.Technologie{}).Distinct().Count(&techCount)
+
+	c.JSON(http.StatusOK, gin.H{
+		"DBSzie":       fmt.Sprintf("%.2f", float64(size)/1e6),
+		"URLCount":     urlCount,
+		"CertCount":    certCount,
+		"DNSNameCount": certDNSNameCount,
+		"HeaderCount":  headerCount,
+		"TechCount":    techCount,
+	})
+}
+
 func apiTableHandler(c *gin.Context) {
 
 	var urls []storage.URL
@@ -731,6 +766,15 @@ func apiSearchHandler(c *gin.Context) {
 // apiDetailHandler handles a detail request for screenshot information
 func apiDetailHandler(c *gin.Context) {
 
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status":  "error",
+			"message": err.Error(),
+		})
+		return
+	}
+
 	var url storage.URL
 	rsDB.
 		Preload("Headers").
@@ -739,15 +783,34 @@ func apiDetailHandler(c *gin.Context) {
 		Preload("TLS.TLSCertificates.DNSNames").
 		Preload("Technologies").
 		Preload("Console").
-		Preload("Network").
-		First(&url, c.Param("id"))
+		Preload("Network", func(db *gorm.DB) *gorm.DB {
+			db = db.Order("Time asc")
+			return db
+		}).
+		First(&url, id)
 
-	if url.ID == 0 {
-		c.JSON(http.StatusNotFound, nil)
-		return
+	// get pagination limits
+	var max uint
+	rsDB.Model(storage.URL{}).Select("max(id)").First(&max)
+
+	previous := url.ID
+	next := url.ID
+
+	if previous > 0 {
+		previous = previous - 1
 	}
 
-	c.JSON(http.StatusOK, url)
+	if next < max {
+		next = next + 1
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"ID":       id,
+		"Data":     url,
+		"Previous": previous,
+		"Next":     next,
+		"Max":      max,
+	})
 }
 
 // apiDetailScreenshotHandler serves the screenshot for a specific url id

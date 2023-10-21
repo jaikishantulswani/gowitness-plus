@@ -1,6 +1,6 @@
 FROM golang:1-bullseye as build
 
-LABEL maintainer="Leon Jacobs <leonja511@gmail.com>"
+LABEL maintainer="XCT"
 
 COPY . /src
 
@@ -19,7 +19,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /src/gowitness /usr/local/bin
-
+COPY --from=build /src/web/dist /data/web/dist
 EXPOSE 7171
 
 VOLUME ["/data"]

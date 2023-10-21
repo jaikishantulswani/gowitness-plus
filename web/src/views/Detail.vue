@@ -89,7 +89,34 @@
           <table class="table caption-top mb-3">
             <caption>
               Response Headers
-              <span class="badge bg-primary">Primary</span>
+              <span
+                    v-if="url.Data.ResponseCode === 200"
+                    class="badge text-bg-success"
+                    >{{ url.Data.ResponseCode }}</span
+                  >
+                  <span
+                    v-else-if="300 > url.Data.ResponseCode > 200"
+                    class="badge text-bg-primary"
+                    >{{ url.Data.ResponseCode }}</span
+                  >
+                  <span
+                    v-else-if="url.Data.ResponseCode >= 500"
+                    class="badge text-bg-danger"
+                    >{{ url.Data.ResponseCode }}</span
+                  >
+                  <span
+                    v-else-if="500 > url.Data.ResponseCode >= 400"
+                    class="badge text-bg-warning"
+                    >{{ url.Data.ResponseCode }}</span
+                  >
+                  <span
+                    v-else-if="400 > url.Data.ResponseCode >= 300"
+                    class="badge text-bg-info"
+                    >{{ url.Data.ResponseCode }}</span
+                  >
+                  <span v-else class="badge text-bg-light">{{
+                    url.Data.ResponseCode
+                  }}</span>
             </caption>
             <thead>
               <tr>
@@ -134,11 +161,10 @@
                     class="badge text-bg-primary"
                     >{{ network.StatusCode }}</span
                   >
-                  <!-- <span v-else-if="record.ResponseCode === 404" class="badge text-bg-secondary">{{record.ResponseCode}}</span> -->
                   <span
                     v-else-if="network.StatusCode >= 500"
                     class="badge text-bg-danger"
-                    >{{ rnetwork.StatusCode }}</span
+                    >{{ network.StatusCode }}</span
                   >
                   <span
                     v-else-if="500 > network.StatusCode >= 400"

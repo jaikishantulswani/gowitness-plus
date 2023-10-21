@@ -69,7 +69,9 @@
             <td>{{ record.Console.length }}</td>
             <td>{{ record.Technologies.length }}</td>
             <td>{{ record.Title }}</td>
-            <td><button class="btn btn-outline-primary">Detail</button></td>
+            <td>
+              <router-link class="btn btn btn-outline-primary" aria-current="page" :to="`/detail/${record.ID}`">Detail</router-link>
+            </td>
           </tr>
         </tbody>
       </table>

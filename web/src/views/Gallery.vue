@@ -45,7 +45,7 @@
             </div>
           </div>
           <div class="card-footer text-body-secondary">
-            <router-link class="btn btn-primary" aria-current="page" :to="`/detail/${gallery.ID}`">Go</router-link>
+            <router-link class="btn btn-primary" aria-current="page" :to="`/detail/${gallery.ID}`"><i class="fa-regular fa-eye"></i></router-link>
           </div>
         </div>
       </div>
@@ -75,7 +75,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title h4" id="exampleModalXlLabel">
-            {{ url }}
+            {{ galleryS.URL }}
           </h5>
           <button
             type="button"

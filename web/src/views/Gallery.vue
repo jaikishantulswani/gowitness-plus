@@ -53,15 +53,16 @@
     <div v-if="galleries.Count > 0 || galleries.page > 1" class="d-flex justify-content-end my-3">
       <nav aria-label="Page navigation example">
         <ul class="pagination">
-          <li class="page-item"><a class="page-link" href="#">Previous</a></li>
-          <li class="page-item"><a class="page-link" href="#">1</a></li>
-          <li class="page-item"><a class="page-link" href="#">2</a></li>
-          <li class="page-item"><a class="page-link" href="#">3</a></li>
-          <li class="page-item"><a class="page-link" href="#">Next</a></li>
+          <li :class="galleries.Page > 1? 'page-item' : 'page-item disabled'" @click="prevPage()"><a class="page-link" href="javascript:void(0)">Previous</a></li>
+          <li v-for="i in galleries.PrevPageRange" class="page-item"><a class="page-link" href="javascript:void(0)" @click="goToPage(i)">{{ i }}</a></li>
+          <li class="page-item"><a class="page-link" href="javascript:void(0)">{{ galleries.Page }}</a></li>
+          <li v-for="i in galleries.NextPageRange" class="page-item"><a class="page-link" href="javascript:void(0)" @click="goToPage(i)">{{ i }}</a></li>
+          <li :class="galleries.Page === galleries.NextPage ? 'page-item disabled' : 'page-item'" @click="nextPage()"><a class="page-link" href="javascript:void(0)">Next</a></li>
         </ul>
       </nav>
     </div>
   </main>
+
   <div
     :class="modal ? 'modal fade show' : 'modal'"
     id="exampleModalXl"
@@ -130,6 +131,28 @@ export default {
       galleryS.value = gallery;
     }
 
+    const prevPage = async ()=>{
+      const res = await axios.get(`http://localhost:7171/api//gallery?perception_sort=true&limit=${ galleries.Limit }&page=${ galleries.PrevPage }`);
+      if (res.status == 200) {
+        this.galleries = res.data.data;
+      }
+    }
+
+    const nextPage = async ()=>{
+      const res = await axios.get(`http://localhost:7171/api//gallery?perception_sort=true&limit=${ galleries.Limit }&page=${ galleries.NextPage  }`);
+      if (res.status == 200) {
+        this.galleries = res.data.data;
+      }
+    }
+
+    const goToPage = async (page)=>{
+      const res = await axios.get(`http://localhost:7171/api//gallery?perception_sort=true&limit=${ galleries.Limit }&page=${ page }`);
+      if (res.status == 200) {
+        this.galleries = res.data.data;
+      }
+    }
+
+
     watch(escape, (v) => {
       if (v) {
         modal.value = false
@@ -143,6 +166,9 @@ export default {
       galleryS,
 
       selectGallery,
+      prevPage,
+      nextPage,
+      goToPage,
     };
   },
 

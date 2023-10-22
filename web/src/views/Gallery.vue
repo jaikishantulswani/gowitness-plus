@@ -1,6 +1,28 @@
 <template>
   <main class="mx-3">
-    <h5>Gallery view</h5>
+    <table class="table table-borderless">
+      <tbody>
+        <tr>
+          <td>
+            <h5>Gallery view</h5>
+          </td>
+          <td>
+            <div class="form-check form-switch">
+              <input
+                v-model="perception"
+                class="form-check-input"
+                type="checkbox"
+                id="flexSwitchCheckDefault"
+              />
+              <label class="form-check-label" for="flexSwitchCheckDefault"
+                >Enable perception sort</label
+              >
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
     <small class="text-muted"
       >URLS: {{ galleries?.Count ? galleries.Count : 0 }}</small
     >
@@ -45,19 +67,59 @@
             </div>
           </div>
           <div class="card-footer text-body-secondary">
-            <router-link class="btn btn-primary" aria-current="page" :to="`/detail/${gallery.ID}`"><i class="fa-regular fa-eye"></i></router-link>
+            <router-link
+              class="btn btn-primary"
+              aria-current="page"
+              :to="`/detail/${gallery.ID}`"
+              ><i class="fa-regular fa-eye"></i
+            ></router-link>
           </div>
         </div>
       </div>
     </div>
-    <div v-if="galleries.Count > 0 || galleries.page > 1" class="d-flex justify-content-end my-3">
+    <div
+      v-if="galleries.Count > 0 || galleries.page > 1"
+      class="d-flex justify-content-end my-3"
+    >
       <nav aria-label="Page navigation example">
         <ul class="pagination">
-          <li :class="galleries.Page > 1? 'page-item' : 'page-item disabled'" @click="prevPage()"><a class="page-link" href="javascript:void(0)">Previous</a></li>
-          <li v-for="i in galleries.PrevPageRange" class="page-item"><a class="page-link" href="javascript:void(0)" @click="goToPage(i)">{{ i }}</a></li>
-          <li class="page-item"><a class="page-link" href="javascript:void(0)">{{ galleries.Page }}</a></li>
-          <li v-for="i in galleries.NextPageRange" class="page-item"><a class="page-link" href="javascript:void(0)" @click="goToPage(i)">{{ i }}</a></li>
-          <li :class="galleries.Page === galleries.NextPage ? 'page-item disabled' : 'page-item'" @click="nextPage()"><a class="page-link" href="javascript:void(0)">Next</a></li>
+          <li
+            :class="galleries.Page > 1 ? 'page-item' : 'page-item disabled'"
+            @click="prevPage()"
+          >
+            <a class="page-link" href="javascript:void(0)">Previous</a>
+          </li>
+          <li v-for="i in galleries.PrevPageRange" class="page-item">
+            <a
+              class="page-link"
+              href="javascript:void(0)"
+              @click="goToPage(i)"
+              >{{ i }}</a
+            >
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="javascript:void(0)">{{
+              galleries.Page
+            }}</a>
+          </li>
+          <li v-for="i in galleries.NextPageRange" class="page-item">
+            <a
+              class="page-link"
+              href="javascript:void(0)"
+              @click="goToPage(i)"
+              >{{ i }}</a
+            >
+          </li>
+          <li
+            :class="
+              galleries.Page === galleries.NextPage
+                ? 'page-item disabled'
+                : 'page-item'
+            "
+            @click="nextPage()"
+          >
+            <a class="page-link" href="javascript:void(0)">Next</a>
+          </li>
         </ul>
       </nav>
     </div>
@@ -93,20 +155,20 @@
             type="application/pdf"
             frameBorder="0"
             scrolling="auto"
-            style="height: 100%;width: 100%;"
+            style="height: 100%; width: 100%"
           />
           <img
             v-else-if="galleryS.Screenshot"
             :src="'data:image/png;base64,' + galleryS.Screenshot"
             alt=""
-            style="height: 100%;width: 100%;"
+            style="height: 100%; width: 100%"
           />
           <img
             v-else
             loading="lazy"
             :src="'/screenshots/' + galleryS.Filename"
             onerror="this.onerror=null; this.src='/assets/default.jfif'"
-            style="height: 100%;width: 100%;"
+            style="height: 100%; width: 100%"
           />
         </div>
       </div>
@@ -117,7 +179,7 @@
 <script>
 import { ref } from "vue";
 import axios from "axios";
-import { watch } from 'vue';
+import { watch } from "vue";
 import { useMagicKeys } from "@vueuse/core";
 export default {
   setup() {
@@ -125,38 +187,54 @@ export default {
     const url = ref("");
     const galleryS = ref({});
     const modal = ref(false);
+    const perception = ref(false);
+    const perceptionLocal = localStorage.getItem('perception')
+    if(perceptionLocal.toLowerCase() === "true" || perceptionLocal.toLowerCase() === "false"){
+      perception.value = perceptionLocal.toLowerCase() === "true"
+    }else{
+      localStorage.setItem('perception',false)
+    }
     const { escape } = useMagicKeys();
     function selectGallery(gallery) {
       modal.value = true;
       galleryS.value = gallery;
     }
 
-    const prevPage = async ()=>{
-      const res = await axios.get(`/api//gallery?perception_sort=true&limit=${ galleries.Limit }&page=${ galleries.PrevPage }`);
+    const prevPage = async () => {
+      const res = await axios.get(
+        `/api//gallery?perception_sort=${perception}&limit=${galleries.Limit}&page=${galleries.PrevPage}`
+      );
       if (res.status == 200) {
         this.galleries = res.data.data;
       }
-    }
+    };
 
-    const nextPage = async ()=>{
-      const res = await axios.get(`/api//gallery?perception_sort=true&limit=${ galleries.Limit }&page=${ galleries.NextPage  }`);
+    const nextPage = async () => {
+      const res = await axios.get(
+        `/api//gallery?perception_sort=${perception}&limit=${galleries.Limit}&page=${galleries.NextPage}`
+      );
       if (res.status == 200) {
         this.galleries = res.data.data;
       }
-    }
+    };
 
-    const goToPage = async (page)=>{
-      const res = await axios.get(`/api//gallery?perception_sort=true&limit=${ galleries.Limit }&page=${ page }`);
+    const goToPage = async (page) => {
+      const res = await axios.get(
+        `/api//gallery?perception_sort=${perception}&limit=${galleries.Limit}&page=${page}`
+      );
       if (res.status == 200) {
         this.galleries = res.data.data;
       }
-    }
-
+    };
 
     watch(escape, (v) => {
       if (v) {
-        modal.value = false
+        modal.value = false;
       }
+    });
+
+    watch(perception, (v) => {
+        localStorage.setItem('perception',v)
     });
 
     return {
@@ -164,6 +242,8 @@ export default {
       galleries,
       url,
       galleryS,
+      perception,
+      
 
       selectGallery,
       prevPage,
@@ -173,7 +253,7 @@ export default {
   },
 
   async mounted() {
-    const res = await axios.get("/api/gallery");
+    const res = await axios.get(`${import.meta.env.VITE_URL}/api/gallery?perception_sort=${this.perception}`);
     if (res.status == 200) {
       this.galleries = res.data.data;
     }

@@ -220,7 +220,7 @@ export default {
 
   async mounted() {
     const res = await axios.get(
-      `/api/detail/${this.$route.params.id}`
+      `${import.meta.env.VITE_URL}/api/detail/${this.$route.params.id}`
     );
     if (res.status === 200) {
       this.url = res.data;

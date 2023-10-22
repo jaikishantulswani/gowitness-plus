@@ -93,7 +93,7 @@ export default {
   },
 
   async mounted() {
-    const res = await axios.get("/api/table");
+    const res = await axios.get(`${import.meta.env.VITE_URL}/api/table`);
     if (res.status == 200) {
       this.records = res.data.data;
     }

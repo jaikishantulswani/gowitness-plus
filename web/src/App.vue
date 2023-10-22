@@ -16,19 +16,30 @@
       <div class="collapse navbar-collapse" id="navbarCollapse">
         <ul class="navbar-nav me-auto mb-2 mb-md-0">
           <li class="nav-item">
-            <router-link class="nav-link active" aria-current="page" to="/">Home</router-link>
+            <router-link class="nav-link active" aria-current="page" to="/"
+              >Home</router-link
+            >
           </li>
           <!-- <li class="nav-item">
             <router-link class="nav-link active" aria-current="page" to="/gallery">Gallery View</router-link>
           </li> -->
           <li class="nav-item">
-            <router-link class="nav-link active" aria-current="page" to="/table">Table View</router-link>
+            <router-link class="nav-link active" aria-current="page" to="/table"
+              >Table View</router-link
+            >
           </li>
           <li class="nav-item">
-            <router-link class="nav-link active" aria-current="page" to="/submit">Submit new URL</router-link>
+            <router-link
+              class="nav-link active"
+              aria-current="page"
+              to="/submit"
+              >Submit new URL</router-link
+            >
           </li>
           <li class="nav-item">
-            <router-link class="nav-link active" aria-current="page" to="/log">Error Log</router-link>
+            <router-link class="nav-link active" aria-current="page" to="/log"
+              >Error Log</router-link
+            >
           </li>
         </ul>
         <div class="d-flex">
@@ -38,40 +49,43 @@
             placeholder="Search"
             aria-label="Search"
           />
-          <button class="btn btn-outline-success" type="submit">
-            Search
-          </button>
+          <button class="btn btn-outline-success" type="submit">Search</button>
         </div>
       </div>
     </div>
-    <hr>
+    <hr />
   </nav>
   <div class="nav-scroller bg-light mb-3 shadow-sm">
-  <nav class="nav" aria-label="Secondary navigation">
-    <a class="nav-link active" aria-current="page" href="javascript:void(0)">Statistics</a>
-    <a class="nav-link" href="javascript:void(0)">
-      Processed URLs
-      <span class="text-bg-light">{{ statistics.URLCount }}</span>
-    </a>
-    <a class="nav-link" href="javascript:void(0)">
-      Certificates
-      <span class="text-bg-light">{{ statistics.CertCount }}</span>
-    </a>
-    <a class="nav-link" href="javascript:void(0)">
-      Headers
-      <span class="text-bg-light">{{ statistics.HeaderCount }}</span>
-    </a>
-    <a class="nav-link" href="javascript:void(0)">
-      Unique Technologies
-      <span class="text-bg-light">{{ statistics.TechCount }}</span>
-    </a>
-    <!-- <a class="nav-link" href="#">Link</a> -->
-  </nav>
-</div>
-<RouterView/>
+    <nav class="nav" aria-label="Secondary navigation">
+      <a class="nav-link active" aria-current="page" href="javascript:void(0)"
+        >Statistics</a
+      >
+      <a class="nav-link" href="javascript:void(0)">
+        Processed URLs
+        <span class="text-bg-light">{{ statistics.URLCount }}</span>
+      </a>
+      <a class="nav-link" href="javascript:void(0)">
+        Certificates
+        <span class="text-bg-light">{{ statistics.CertCount }}</span>
+      </a>
+      <a class="nav-link" href="javascript:void(0)">
+        Headers
+        <span class="text-bg-light">{{ statistics.HeaderCount }}</span>
+      </a>
+      <a class="nav-link" href="javascript:void(0)">
+        Unique Technologies
+        <span class="text-bg-light">{{ statistics.TechCount }}</span>
+      </a>
+      <!-- <div class="nav-link" href="javascript:void(0)">
+
+      </div> -->
+      <!-- <a class="nav-link" href="#">Link</a> -->
+    </nav>
+  </div>
+  <RouterView />
 </template>
 <script>
-import { RouterView,RouterLink } from 'vue-router'
+import { RouterView, RouterLink } from "vue-router";
 import { ref } from "vue";
 import axios from "axios";
 export default {
@@ -83,7 +97,7 @@ export default {
   },
 
   async mounted() {
-    const res = await axios.get("/api/statistic");
+    const res = await axios.get(`${import.meta.env.VITE_URL}/api/statistic`);
     if (res.status == 200) {
       this.statistics = res.data;
     }

@@ -24,6 +24,8 @@ type URL struct {
 	PerceptionHash string
 	DOM            string
 	Screenshot     string
+	Callback       string
+	IdUrl          int
 
 	TLS TLS
 
@@ -180,7 +182,9 @@ type NetworkLog struct {
 type ScreenshotQueue struct {
 	gorm.Model
 
-	URL            string
-	PID			   int
-	ErrorMsg       string `gorm:"default:''"`
+	URL      string
+	PID      int
+	ErrorMsg string `gorm:"default:''"`
+	Callback string
+	IdUrl    int `gorm:"default:0"`
 }

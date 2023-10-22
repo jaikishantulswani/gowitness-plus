@@ -161,7 +161,7 @@ func (chrome *Chrome) Preflight(url *url.URL) (result *PreflightResult, err erro
 }
 
 // StoreRequest will store request info to the DB
-func (chrome *Chrome) StoreRequest(db *gorm.DB, preflight *PreflightResult, screenshot *ScreenshotResult, filename string) (uint, error) {
+func (chrome *Chrome) StoreRequest(db *gorm.DB, preflight *PreflightResult, screenshot *ScreenshotResult, filename string, IdUrl int, Callback string) (uint, error) {
 
 	record := &storage.URL{
 		URL:            preflight.URL.String(),
@@ -174,6 +174,8 @@ func (chrome *Chrome) StoreRequest(db *gorm.DB, preflight *PreflightResult, scre
 		Title:          preflight.HTTPTitle,
 		Filename:       filename,
 		IsPDF:          chrome.AsPDF,
+		IdUrl:          IdUrl,
+		Callback:       Callback,
 	}
 
 	// if screenshots need to be saved to the database, do that.

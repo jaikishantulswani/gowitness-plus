@@ -11,14 +11,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gin-gonic/gin"
-	"github.com/gin-contrib/static"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/static"
+	"github.com/gin-gonic/gin"
 	"github.com/sensepost/gowitness/lib"
 	"github.com/sensepost/gowitness/storage"
 	"github.com/spf13/cobra"
-	"gorm.io/gorm"
 	"gopkg.in/robfig/cron.v2"
+	"gorm.io/gorm"
 )
 
 const MAX_JOB = 5
@@ -85,7 +85,7 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 		}
 
 		c := cron.New()
-		c.AddFunc("@every 0h0m30s", func() { 
+		c.AddFunc("@every 0h0m30s", func() {
 			// fmt.Println("Every 30 second")
 
 			var count int64
@@ -111,18 +111,20 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 				rsDB.Model(&storage.ScreenshotQueue{}).Where("ID = ?", row.ID).Update("PID", 1)
 				log.Info().Str("URL: ", row.URL).Msg("Queue")
 				wg.Add(1)
-				go func(u *url.URL,qid uint) {
+				go func(u *url.URL, qid uint, IdUrl int, Callback string) {
 					p := &lib.Processor{
 						Logger:         options.Logger,
 						Db:             rsDB,
 						Chrome:         chrm,
 						URL:            u,
-						QID:			qid,
+						QID:            qid,
+						IdUrl:          IdUrl,
+						Callback:       Callback,
 						ScreenshotPath: options.ScreenshotPath,
 					}
-			
+
 					p.Gowitness()
-				}(targetURL,row.ID)
+				}(targetURL, row.ID, row.IdUrl, row.Callback)
 
 			}
 			wg.Wait()
@@ -132,8 +134,8 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 
 		r := gin.Default()
 		r.Use(cors.New(cors.Config{
-			AllowOrigins:     []string{"*"},
-		  }))
+			AllowOrigins: []string{"*"},
+		}))
 		// r.Use(themeChooser(&theme))
 
 		// add / suffix to the base url so that we can be certain about
@@ -172,13 +174,12 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 		{
 			// api.GET("/test", apiURLHandler2)
 			// For web
-			
+
 			api.GET("/statistic", apiStatisticHandler)
 			api.GET("/log", apiLogHandler)
 			api.GET("/gallery", apiGalleryHandler)
 			api.GET("/table", apiTableHandler)
-			
-			
+
 			// For other system
 			api.GET("/list", apiURLHandler)
 			api.GET("/search", apiSearchHandler)
@@ -186,6 +187,7 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 			api.GET("/detail/:id/screenshot", apiDetailScreenshotHandler)
 			api.POST("/screenshot", apiScreenshotHandler)
 			api.POST("/screenshot/v2", apiScreenshotHandlerV2) // screenshot with queue
+			api.POST("/screenshot/v3", apiScreenshotHandlerV3)
 		}
 
 		log.Info().Str("address", options.ServerAddr).Msg("server listening")
@@ -259,8 +261,6 @@ func themeChooser(choice *string) gin.HandlerFunc {
 	}
 }
 
-
-
 // getSubmitHandler handles generating the view to submit urls
 func getSubmitHandler(c *gin.Context) {
 	c.HTML(http.StatusOK, "submit.html", nil)
@@ -327,7 +327,7 @@ func submitHandler(c *gin.Context) {
 
 	var rid uint
 	if rsDB != nil {
-		if rid, err = chrm.StoreRequest(rsDB, preflight, result, fn); err != nil {
+		if rid, err = chrm.StoreRequest(rsDB, preflight, result, fn, 0, ""); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  "error",
 				"message": err.Error(),
@@ -351,7 +351,6 @@ func submitHandler(c *gin.Context) {
 
 	c.Redirect(http.StatusMovedPermanently, "/submit")
 }
-
 
 // searchHandler handles report searching
 func searchHandler(c *gin.Context) {
@@ -530,7 +529,6 @@ func apiGalleryHandler(c *gin.Context) {
 		"data": page,
 	})
 }
-
 
 // apiURLHandler returns the list of URLS in the database
 func apiURLHandler(c *gin.Context) {
@@ -740,7 +738,7 @@ func apiScreenshotHandlerV2(c *gin.Context) {
 	type Request struct {
 		URL     string   `json:"url"`
 		Headers []string `json:"headers"`
-		URLS	[]string   `json:"urls"`
+		URLS    []string `json:"urls"`
 	}
 
 	var requestData Request
@@ -770,27 +768,27 @@ func apiScreenshotHandlerV2(c *gin.Context) {
 	for _, c_url := range c_urls {
 		targetURL, err := url.Parse(c_url)
 		if err != nil {
-			errorsMsg = append(errorsMsg,err.Error())
+			errorsMsg = append(errorsMsg, err.Error())
 			continue
 		}
-	
+
 		if !options.AllowInsecureURIs {
 			if !strings.HasPrefix(targetURL.Scheme, "http") {
-				errorsMsg = append(errorsMsg,"Not AllowInsecureURIs")
+				errorsMsg = append(errorsMsg, "Not AllowInsecureURIs")
 				continue
 			}
 		}
-	
+
 		if err = options.PrepareScreenshotPath(); err != nil {
-			errorsMsg = append(errorsMsg,err.Error())
+			errorsMsg = append(errorsMsg, err.Error())
 			continue
 		}
-	
+
 		screenshot_queue := storage.ScreenshotQueue{URL: targetURL.String(), PID: 0}
-	
-		result := rsDB.Create(&screenshot_queue) 
-		if result.Error!=nil{
-			errorsMsg = append(errorsMsg,result.Error.Error())
+
+		result := rsDB.Create(&screenshot_queue)
+		if result.Error != nil {
+			errorsMsg = append(errorsMsg, result.Error.Error())
 			continue
 		}
 	}
@@ -803,17 +801,78 @@ func apiScreenshotHandlerV2(c *gin.Context) {
 		return
 	}
 
-	
+	c.JSON(http.StatusCreated, gin.H{
+		"status": "created ",
+	})
+}
+
+func apiScreenshotHandlerV3(c *gin.Context) {
+	type Urls struct {
+		Name string `json:"name"`
+		Id   int    `json:"id"`
+	}
+
+	type Request struct {
+		Headers  []string `json:"headers"`
+		URLS     []Urls   `json:"urls"`
+		Callback string   `json:"callback"`
+	}
+
+	var requestData Request
+	if err := c.ShouldBindJSON(&requestData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	var errorsMsg []string
+
+	for _, c_url := range requestData.URLS {
+		targetURL, err := url.Parse(c_url.Name)
+		if err != nil {
+			errorsMsg = append(errorsMsg, err.Error())
+			continue
+		}
+
+		if !options.AllowInsecureURIs {
+			if !strings.HasPrefix(targetURL.Scheme, "http") {
+				errorsMsg = append(errorsMsg, "Not AllowInsecureURIs")
+				continue
+			}
+		}
+
+		if err = options.PrepareScreenshotPath(); err != nil {
+			errorsMsg = append(errorsMsg, err.Error())
+			continue
+		}
+
+		screenshot_queue := storage.ScreenshotQueue{URL: targetURL.String(), PID: 0, Callback: requestData.Callback, IdUrl: c_url.Id}
+
+		result := rsDB.Create(&screenshot_queue)
+		if result.Error != nil {
+			errorsMsg = append(errorsMsg, result.Error.Error())
+			continue
+		}
+	}
+
+	if len(errorsMsg) != 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  errorsMsg,
+		})
+		return
+	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"status": "created ",
 	})
-
 }
 
 func apiLogHandler(c *gin.Context) {
 	var urls []storage.ScreenshotQueue
-	rsDB.Where("p_id = ?",-1).Find(&urls)
+	rsDB.Where("p_id = ?", -1).Find(&urls)
 
 	// var count int64
 	// rsDB.Model(&storage.ScreenshotQueue{}).Where("p_id > 0").Count(&count)
@@ -829,13 +888,13 @@ func apiLogHandler(c *gin.Context) {
 	// })
 	c.JSON(http.StatusOK, gin.H{
 		"status": true,
-		"data": urls,
+		"data":   urls,
 	})
 }
 
 func apiURLHandler2(c *gin.Context) {
 	var urls []storage.ScreenshotQueue
-	rsDB.Where("p_id = ?",-1).Find(&urls)
+	rsDB.Where("p_id = ?", -1).Find(&urls)
 
 	// var count int64
 	// rsDB.Model(&storage.ScreenshotQueue{}).Where("p_id > 0").Count(&count)
@@ -851,6 +910,6 @@ func apiURLHandler2(c *gin.Context) {
 	// })
 	c.JSON(http.StatusOK, gin.H{
 		"status": true,
-		"data": urls,
+		"data":   urls,
 	})
 }

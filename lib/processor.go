@@ -23,8 +23,9 @@ type Processor struct {
 	URL                *url.URL
 	ScreenshotPath     string
 	ScreenshotFileName string
-	QID				   uint
-
+	QID                uint
+	IdUrl              int
+	Callback           string
 	// file name & file path
 	fn string
 	fp string
@@ -49,7 +50,7 @@ func (p *Processor) Gowitness() (err error) {
 	p.init()
 
 	if err = p.preflight(); err != nil {
-		p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{ PID: -1, ErrorMsg: "preflight request failed - "+err.Error()})
+		p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{PID: -1, ErrorMsg: "preflight request failed - " + err.Error()})
 		log.Error().Err(err).Msg("preflight request failed")
 		return
 	}
@@ -59,7 +60,7 @@ func (p *Processor) Gowitness() (err error) {
 	if (len(p.Chrome.ScreenshotCodes) > 0) &&
 		!SliceContainsInt(p.Chrome.ScreenshotCodes, p.preflightResult.HTTPResponse.StatusCode) {
 
-			p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{ PID: -1, ErrorMsg: "response code not in allowed screenshot http response codes. skipping."})
+		p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{PID: -1, ErrorMsg: "response code not in allowed screenshot http response codes. skipping."})
 		log.Warn().Int("response-code", p.preflightResult.HTTPResponse.StatusCode).
 			Msg("response code not in allowed screenshot http response codes. skipping.")
 
@@ -67,25 +68,25 @@ func (p *Processor) Gowitness() (err error) {
 	}
 
 	if err = p.takeScreenshot(); err != nil {
-		p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{ PID: -1, ErrorMsg: "failed to take screenshot - " + err.Error()})
+		p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{PID: -1, ErrorMsg: "failed to take screenshot - " + err.Error()})
 		log.Error().Err(err).Msg("failed to take screenshot")
 		return
 	}
 
 	if err = p.persistRequest(); err != nil {
-		p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{ PID: -1, ErrorMsg: "failed to store request information - "+err.Error()})
+		p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{PID: -1, ErrorMsg: "failed to store request information - " + err.Error()})
 		log.Error().Err(err).Msg("failed to store request information")
 		return
 	}
 
 	if err = p.storePerceptionHash(); err != nil {
-		p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{ PID: -1, ErrorMsg: "failed to calculate and save a perception hash - " + err.Error()})
+		p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{PID: -1, ErrorMsg: "failed to calculate and save a perception hash - " + err.Error()})
 		log.Error().Err(err).Msg("failed to calculate and save a perception hash")
 		return
 	}
 
 	if err = p.writeScreenshot(); err != nil {
-		p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{ PID: -1, ErrorMsg: "failed to save screenshot buffer - "+err.Error()})
+		p.Db.Model(&storage.ScreenshotQueue{}).Where("ID = ?", p.QID).Updates(storage.ScreenshotQueue{PID: -1, ErrorMsg: "failed to save screenshot buffer - " + err.Error()})
 		log.Error().Err(err).Msg("failed to save screenshot buffer")
 		return
 	}
@@ -152,7 +153,7 @@ func (p *Processor) persistRequest() (err error) {
 	}
 
 	p.Logger.Debug().Str("url", p.URL.String()).Msg("storing request data")
-	if p.urlid, err = p.Chrome.StoreRequest(p.Db, p.preflightResult, p.screenshotResult, p.fn); err != nil {
+	if p.urlid, err = p.Chrome.StoreRequest(p.Db, p.preflightResult, p.screenshotResult, p.fn, p.IdUrl, p.Callback); err != nil {
 		return
 	}
 

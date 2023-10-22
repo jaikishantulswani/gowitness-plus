@@ -68,11 +68,24 @@
           </div>
           <div class="card-footer text-body-secondary">
             <router-link
-              class="btn btn-primary"
+              class="btn btn-primary mx-1"
               aria-current="page"
               :to="`/detail/${gallery.ID}`"
               ><i class="fa-regular fa-eye"></i
             ></router-link>
+            <a
+              class="btn btn-warning mx-1"
+              aria-current="page"
+              :href="`${gallery.Callback}/url/${gallery.IdUrl}`"
+              target="_blank"
+              ><i class="fa-regular fa-circle-up"></i
+            ></a>
+            <button
+              class="btn btn-info mx-1"
+              @click="updateLabel(gallery.Callback, gallery.IdUrl)"
+            >
+              <i class="fa-solid fa-tag"></i>
+            </button>
           </div>
         </div>
       </div>
@@ -181,18 +194,23 @@ import { ref } from "vue";
 import axios from "axios";
 import { watch } from "vue";
 import { useMagicKeys } from "@vueuse/core";
+import { useToast } from 'vue-toastification'
 export default {
   setup() {
     const galleries = ref({});
+    const toast = useToast();
     const url = ref("");
     const galleryS = ref({});
     const modal = ref(false);
     const perception = ref(false);
-    const perceptionLocal = localStorage.getItem('perception')
-    if(perceptionLocal.toLowerCase() === "true" || perceptionLocal.toLowerCase() === "false"){
-      perception.value = perceptionLocal.toLowerCase() === "true"
-    }else{
-      localStorage.setItem('perception',false)
+    const perceptionLocal = localStorage.getItem("perception");
+    if (
+      perceptionLocal.toLowerCase() === "true" ||
+      perceptionLocal.toLowerCase() === "false"
+    ) {
+      perception.value = perceptionLocal.toLowerCase() === "true";
+    } else {
+      localStorage.setItem("perception", false);
     }
     const { escape } = useMagicKeys();
     function selectGallery(gallery) {
@@ -202,7 +220,7 @@ export default {
 
     const prevPage = async () => {
       const res = await axios.get(
-        `/api//gallery?perception_sort=${perception}&limit=${galleries.Limit}&page=${galleries.PrevPage}`
+        `/api/gallery?perception_sort=${perception}&limit=${galleries.Limit}&page=${galleries.PrevPage}`
       );
       if (res.status == 200) {
         this.galleries = res.data.data;
@@ -211,7 +229,7 @@ export default {
 
     const nextPage = async () => {
       const res = await axios.get(
-        `/api//gallery?perception_sort=${perception}&limit=${galleries.Limit}&page=${galleries.NextPage}`
+        `/api/gallery?perception_sort=${perception}&limit=${galleries.Limit}&page=${galleries.NextPage}`
       );
       if (res.status == 200) {
         this.galleries = res.data.data;
@@ -220,10 +238,29 @@ export default {
 
     const goToPage = async (page) => {
       const res = await axios.get(
-        `/api//gallery?perception_sort=${perception}&limit=${galleries.Limit}&page=${page}`
+        `/api/gallery?perception_sort=${perception}&limit=${galleries.Limit}&page=${page}`
       );
       if (res.status == 200) {
         this.galleries = res.data.data;
+      }
+    };
+
+    const updateLabel = async (callback, idUrl) => {
+      if(!callback){
+        toast.error('Callback is empty')
+        return
+      }
+      const res = await axios.post(
+        `${callback}/api/callback/url/update-label`,
+        {
+          idUrl,
+          label: 0,
+        }
+      ).catch(error => {return false});
+      if(!res || res.error){
+        toast.error('Unknow error')
+      }else{
+        toast.success("Success");
       }
     };
 
@@ -234,7 +271,7 @@ export default {
     });
 
     watch(perception, (v) => {
-        localStorage.setItem('perception',v)
+      localStorage.setItem("perception", v);
     });
 
     return {
@@ -243,17 +280,22 @@ export default {
       url,
       galleryS,
       perception,
-      
+      toast,
 
       selectGallery,
       prevPage,
       nextPage,
       goToPage,
+      updateLabel,
     };
   },
 
   async mounted() {
-    const res = await axios.get(`${import.meta.env.VITE_URL}/api/gallery?perception_sort=${this.perception}`);
+    const res = await axios.get(
+      `${import.meta.env.VITE_URL}/api/gallery?perception_sort=${
+        this.perception
+      }`
+    );
     if (res.status == 200) {
       this.galleries = res.data.data;
     }

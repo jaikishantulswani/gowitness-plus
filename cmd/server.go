@@ -142,27 +142,8 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 			options.BasePath += "/"
 		}
 
-		// log.Info().Str("base-path", options.BasePath).Msg("basepath")
+		log.Info().Str("base-path", options.BasePath).Msg("basepath")
 
-		// funcMap := template.FuncMap{
-		// 	"GetTheme": getTheme,
-		// 	"Contains": func(full string, search string) bool {
-		// 		return strings.Contains(full, search)
-		// 	},
-		// 	"URL": func(url string) string {
-		// 		return options.BasePath + strings.TrimPrefix(url, "/")
-		// 	},
-		// }
-		// tmpl := template.Must(template.New("").Funcs(funcMap).ParseFS(Embedded, "web/ui-templates/*.html"))
-		// r.SetHTMLTemplate(tmpl)
-
-		// // web ui routes
-		// r.GET("/", dashboardHandler)
-		// r.GET("/gallery", galleryHandler)
-		// r.GET("/table", tableHandler)
-		// r.GET("/log", logHandler)
-		// r.GET("/details/:id", detailHandler)
-		// r.GET("/details/:id/dom", detailDOMDownloadHandler)
 		// r.GET("/submit", getSubmitHandler)
 		// // r.GET("/truncate", getTruncateHandler)
 		// r.POST("/submit", submitHandler)
@@ -278,42 +259,7 @@ func themeChooser(choice *string) gin.HandlerFunc {
 	}
 }
 
-// reporting web ui handlers
-// --
 
-// dashboardHandler handles dashboard requests
-func dashboardHandler(c *gin.Context) {
-
-	// get the sqlite db size
-	var size int64
-	rsDB.Raw("SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size();").Take(&size)
-
-	// count some statistics
-
-	var urlCount int64
-	rsDB.Model(&storage.URL{}).Count(&urlCount)
-
-	var certCount int64
-	rsDB.Model(&storage.TLS{}).Count(&certCount)
-
-	var certDNSNameCount int64
-	rsDB.Model(&storage.TLSCertificateDNSName{}).Count(&certDNSNameCount)
-
-	var headerCount int64
-	rsDB.Model(&storage.Header{}).Count(&headerCount)
-
-	var techCount int64
-	rsDB.Model(&storage.Technologie{}).Distinct().Count(&techCount)
-
-	c.HTML(http.StatusOK, "dashboard.html", gin.H{
-		"DBSzie":       fmt.Sprintf("%.2f", float64(size)/1e6),
-		"URLCount":     urlCount,
-		"CertCount":    certCount,
-		"DNSNameCount": certDNSNameCount,
-		"HeaderCount":  headerCount,
-		"TechCount":    techCount,
-	})
-}
 
 // getSubmitHandler handles generating the view to submit urls
 func getSubmitHandler(c *gin.Context) {
@@ -406,139 +352,6 @@ func submitHandler(c *gin.Context) {
 	c.Redirect(http.StatusMovedPermanently, "/submit")
 }
 
-// detailHandler gets all of the details for a particular url id
-func detailHandler(c *gin.Context) {
-
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "error",
-			"message": err.Error(),
-		})
-		return
-	}
-
-	var url storage.URL
-	rsDB.
-		Preload("Headers").
-		Preload("TLS").
-		Preload("TLS.TLSCertificates").
-		Preload("TLS.TLSCertificates.DNSNames").
-		Preload("Technologies").
-		Preload("Console").
-		Preload("Network", func(db *gorm.DB) *gorm.DB {
-			db = db.Order("Time asc")
-			return db
-		}).
-		First(&url, id)
-
-	// get pagination limits
-	var max uint
-	rsDB.Model(storage.URL{}).Select("max(id)").First(&max)
-
-	previous := url.ID
-	next := url.ID
-
-	if previous > 0 {
-		previous = previous - 1
-	}
-
-	if next < max {
-		next = next + 1
-	}
-
-	c.HTML(http.StatusOK, "detail.html", gin.H{
-		"ID":       id,
-		"Data":     url,
-		"Previous": previous,
-		"Next":     next,
-		"Max":      max,
-	})
-}
-
-// detailDOMDownloadHandler downloads the DOM as a text
-func detailDOMDownloadHandler(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "error",
-			"message": err.Error(),
-		})
-		return
-	}
-
-	var url storage.URL
-	if err := rsDB.First(&url, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"status":  "error",
-			"message": err.Error(),
-		})
-		return
-	}
-
-	c.Writer.Header().Set("Content-Disposition", `attachment; filename="`+url.Filename+`.txt"`)
-	c.String(http.StatusOK, url.DOM)
-}
-
-// tableHandler handles the URL table view
-func tableHandler(c *gin.Context) {
-
-	var urls []storage.URL
-	rsDB.Preload("Network").Preload("Console").Preload("Technologies").Find(&urls)
-
-	c.HTML(http.StatusOK, "table.html", gin.H{
-		"Data": urls,
-	})
-}
-
-// tableHandler handles the URL table view
-func logHandler(c *gin.Context) {
-
-	var urls []storage.ScreenshotQueue
-	rsDB.Where("p_id = ?",-1).Find(&urls)
-
-	c.HTML(http.StatusOK, "log.html", gin.H{
-		"Data": urls,
-	})
-}
-
-// galleryHandler handles the index page. this is the main gallery view
-func galleryHandler(c *gin.Context) {
-
-	currPage, limit, err := getPageLimit(c)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "error",
-			"message": err.Error(),
-		})
-		return
-	}
-
-	pager := &lib.Pagination{
-		DB:       rsDB,
-		CurrPage: currPage,
-		Limit:    limit,
-	}
-
-	// perception hashing
-	if strings.TrimSpace(c.Query("perception_sort")) == "true" {
-		pager.OrderBy = []string{"perception_hash desc"}
-	}
-
-	var urls []storage.URL
-	page, err := pager.Page(&urls)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status":  "error",
-			"message": err.Error(),
-		})
-		return
-	}
-
-	c.HTML(http.StatusOK, "gallery.html", gin.H{
-		"Data": page,
-	})
-}
 
 // searchHandler handles report searching
 func searchHandler(c *gin.Context) {

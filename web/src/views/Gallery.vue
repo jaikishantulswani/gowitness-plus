@@ -297,7 +297,7 @@ export default {
 
   async mounted() {
     const res = await axios.get(
-      `${import.meta.env.VITE_URL}/api/gallery?perception_sort=${
+      `${import.meta.env.VITE_URL || ''}/api/gallery?perception_sort=${
         this.perception
       }`
     );

@@ -97,7 +97,7 @@ export default {
   },
 
   async mounted() {
-    const res = await axios.get(`${import.meta.env.VITE_URL}/api/statistic`);
+    const res = await axios.get(`${import.meta.env.VITE_URL || ''}/api/statistic`);
     if (res.status == 200) {
       this.statistics = res.data;
     }

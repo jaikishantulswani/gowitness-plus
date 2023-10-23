@@ -36,7 +36,7 @@ export default {
   },
 
   async mounted() {
-    const res = await axios.get(`${import.meta.env.VITE_URL}/api/log`)
+    const res = await axios.get(`${import.meta.env.VITE_URL || ''}/api/log`)
     if(res.status == 200){
        this.logs = res.data.data 
     }

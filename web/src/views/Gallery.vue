@@ -74,7 +74,7 @@
               ><i class="fa-regular fa-eye"></i
             ></router-link>
             <a
-            v-if="gallery.Callback"
+              v-if="gallery.Callback"
               class="btn btn-warning mx-1"
               aria-current="page"
               :href="`${gallery.Callback}/url/${gallery.IdUrl}`"
@@ -82,7 +82,7 @@
               ><i class="fa-regular fa-circle-up"></i
             ></a>
             <button
-            v-if="gallery.Callback"
+              v-if="gallery.Callback"
               class="btn btn-info mx-1"
               @click="updateLabel(gallery.Callback, gallery.IdUrl)"
             >
@@ -196,7 +196,7 @@ import { ref } from "vue";
 import axios from "axios";
 import { watch } from "vue";
 import { useMagicKeys } from "@vueuse/core";
-import { useToast } from 'vue-toastification'
+import { useToast } from "vue-toastification";
 export default {
   setup() {
     const galleries = ref({});
@@ -207,10 +207,9 @@ export default {
     const perception = ref(false);
     const configs = ref([]);
     const perceptionLocal = localStorage.getItem("perception");
-    if(!perceptionLocal){
+    if (!perceptionLocal) {
       localStorage.setItem("perception", false);
-    }
-    else if (
+    } else if (
       perceptionLocal.toLowerCase() === "true" ||
       perceptionLocal.toLowerCase() === "false"
     ) {
@@ -219,56 +218,94 @@ export default {
       localStorage.setItem("perception", false);
     }
     const { escape } = useMagicKeys();
-    function selectGallery(gallery) {
+    const selectGallery = (gallery) => {
       modal.value = true;
       galleryS.value = gallery;
-    }
+    };
 
-    const prevPage = async () => {
-      const res = await axios.get(
-        `${import.meta.env.VITE_URL || ''}/api/gallery?perception_sort=${perception.value}&limit=${galleries.value.Limit}&page=${galleries.value.PrevPage}`
+    const updateData = async () => {
+      let res = await axios.get(
+        `${import.meta.env.VITE_URL || ""}/api/gallery?perception_sort=${
+          perception.value
+        }`
       );
       if (res.status == 200) {
         galleries.value = res.data.data;
+      }
+      res = await axios.get(`${import.meta.env.VITE_URL || ""}/api/config/get`);
+      if (res.status == 200) {
+        configs.value = res.data.data;
+      }
+    };
+
+    const prevPage = async () => {
+      const res = await axios.get(
+        `${import.meta.env.VITE_URL || ""}/api/gallery?perception_sort=${
+          perception.value
+        }&limit=${galleries.value.Limit}&page=${galleries.value.PrevPage}`
+      );
+      if (res.status == 200) {
+        galleries.value = res.data.data;
+      } else if (!res || res?.data.error) {
+        toast.error(res?.data?.error || "Unknow error");
       }
     };
 
     const nextPage = async () => {
       const res = await axios.get(
-        `${import.meta.env.VITE_URL || ''}/api/gallery?perception_sort=${perception.value}&limit=${galleries.value.Limit}&page=${galleries.value.NextPage}`
+        `${import.meta.env.VITE_URL || ""}/api/gallery?perception_sort=${
+          perception.value
+        }&limit=${galleries.value.Limit}&page=${galleries.value.NextPage}`
       );
       if (res.status == 200) {
         galleries.value = res.data.data;
+      } else if (!res || res?.data.error) {
+        toast.error(res?.data?.error || "Unknow error");
       }
     };
 
     const goToPage = async (page) => {
       const res = await axios.get(
-        `${import.meta.env.VITE_URL || ''}/api/gallery?perception_sort=${perception.value}&limit=${galleries.value.Limit}&page=${page}`
+        `${import.meta.env.VITE_URL || ""}/api/gallery?perception_sort=${
+          perception.value
+        }&limit=${galleries.value.Limit}&page=${page}`
       );
       if (res.status == 200) {
         galleries.value = res.data.data;
+      } else if (!res || res?.data.error) {
+        toast.error(res?.data?.error || "Unknow error");
       }
     };
 
     const updateLabel = async (callback, idUrl) => {
-      if(!callback){
-        toast.error('Callback is empty')
+      if (!callback) {
+        toast.error("Callback is empty");
+        return;
+      }
+      const APIKey = configs.value.find((c) => c.Machine === callback);
+      if(!APIKey){
+        toast.error(`API key for machine ${callback} is not found`);
         return
       }
-      const res = await axios.post(
-        `${callback}/api/callback/url/update-label`,
-        {
-          idUrl,
-          label: 0,
-        },{
-          headers: {
-            "x-api-key": configs.value.APIKey
-        }}
-      ).catch(error => {return false});
-      if(!res || res?.data.error){
-        toast.error(res?.data.error || 'Unknow error')
-      }else{
+      const res = await axios
+        .post(
+          `${callback}/api/callback/url/update-label`,
+          {
+            idUrl,
+            label: 'seen',
+          },
+          {
+            headers: {
+              "x-api-key": APIKey.Value,
+            },
+          }
+        )
+        .catch((error) => {
+          return false;
+        });
+      if (!res || res?.data.error) {
+        toast.error(res?.data?.error || "Unknow error");
+      } else {
         toast.success("Success");
       }
     };
@@ -292,6 +329,7 @@ export default {
       toast,
       configs,
 
+      updateData,
       selectGallery,
       prevPage,
       nextPage,
@@ -301,18 +339,7 @@ export default {
   },
 
   async mounted() {
-    let res = await axios.get(
-      `${import.meta.env.VITE_URL || ''}/api/gallery?perception_sort=${
-        this.perception
-      }`
-    );
-    if (res.status == 200) {
-      this.galleries = res.data.data;
-    }
-    res = await axios.get(`${import.meta.env.VITE_URL || ''}/api/config/get`);
-    if (res.status == 200) {
-      this.configs = res.data.data;
-    }
+    await this.updateData();
   },
 };
 </script>

@@ -84,7 +84,7 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 			gin.SetMode(gin.ReleaseMode)
 		}
 
-		rsDB.Create(&storage.ConfigMachine{Key: "APIKey", Value: "default"})
+		rsDB.Create(&storage.ConfigMachine{Key: "APIKey", Machine: "default", Value: "default"})
 
 		c := cron.New()
 		c.AddFunc("@every 0h0m30s", func() {
@@ -136,6 +136,7 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 		r := gin.Default()
 		r.Use(cors.New(cors.Config{
 			AllowOrigins: []string{"*"},
+			AllowHeaders: []string{"Origin", "Content-type"},
 		}))
 		// r.Use(themeChooser(&theme))
 
@@ -185,6 +186,7 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 			api.GET("/list", apiURLHandler)
 			api.GET("/config/get", apiGetConfigHandler)
 			api.POST("/config/set", apiSetConfigHandler)
+			api.POST("/config/delete", apiDeleteConfigHandler)
 			api.GET("/search", apiSearchHandler)
 			api.GET("/detail/:id", apiDetailHandler)
 			api.GET("/detail/:id/screenshot", apiDetailScreenshotHandler)
@@ -896,8 +898,10 @@ func apiGetConfigHandler(c *gin.Context) {
 
 func apiSetConfigHandler(c *gin.Context) {
 	type Request struct {
-		Key   string `json:"key"`
-		Value string `json:"value"`
+		Id      int    `json:"id"`
+		Key     string `json:"key"`
+		Machine string `json:"machine"`
+		Value   string `json:"value"`
 	}
 	var requestData Request
 	if err := c.ShouldBindJSON(&requestData); err != nil {
@@ -908,9 +912,37 @@ func apiSetConfigHandler(c *gin.Context) {
 		return
 	}
 
-	if err := rsDB.Model(&storage.ConfigMachine{}).Where("Key = ?", requestData.Key).Update("Value", requestData.Value); err != nil {
+	if err := rsDB.Model(&storage.ConfigMachine{}).Where("ID = ?", requestData.Id).Update("Value", requestData.Value).Update("Machine", requestData.Machine); err.Error != nil {
+		fmt.Println(err.Error)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": false,
+			"error":  err.Error,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": true,
+	})
+}
+
+func apiDeleteConfigHandler(c *gin.Context) {
+	type Request struct {
+		Id int `json:"id"`
+	}
+	var requestData Request
+	if err := c.ShouldBindJSON(&requestData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	if err := rsDB.Delete(&storage.ConfigMachine{}, requestData.Id); err.Error != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  err.Error,
 		})
 		return
 	}

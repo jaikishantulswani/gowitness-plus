@@ -192,6 +192,7 @@ type ScreenshotQueue struct {
 type ConfigMachine struct {
 	gorm.Model
 
-	Key   string
-	Value string
+	Key     string
+	Machine string
+	Value   string
 }

@@ -11,7 +11,7 @@ FROM node:lts-alpine as buildWeb
 COPY ./web /src/web
 WORKDIR /src/web
 RUN npm install
-RUN npm build
+RUN npm run build
 
 # final image
 # https://github.com/chromedp/docker-headless-shell#using-as-a-base-image

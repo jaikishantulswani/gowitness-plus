@@ -736,9 +736,11 @@ func apiScreenshotHandler(c *gin.Context) {
 func apiScreenshotHandlerV2(c *gin.Context) {
 
 	type Request struct {
-		URL     string   `json:"url"`
-		Headers []string `json:"headers"`
-		URLS    []string `json:"urls"`
+		URL      string   `json:"url"`
+		Headers  []string `json:"headers"`
+		URLS     []string `json:"urls"`
+		Callback string   `json:"callback"`
+		IdUrl    int      `json:"idUrl"`
 	}
 
 	var requestData Request
@@ -784,7 +786,7 @@ func apiScreenshotHandlerV2(c *gin.Context) {
 			continue
 		}
 
-		screenshot_queue := storage.ScreenshotQueue{URL: targetURL.String(), PID: 0}
+		screenshot_queue := storage.ScreenshotQueue{URL: targetURL.String(), PID: 0, Callback: requestData.Callback, IdUrl: requestData.IdUrl}
 
 		result := rsDB.Create(&screenshot_queue)
 		if result.Error != nil {

@@ -225,28 +225,28 @@ export default {
 
     const prevPage = async () => {
       const res = await axios.get(
-        `/api/gallery?perception_sort=${perception}&limit=${galleries.Limit}&page=${galleries.PrevPage}`
+        `${import.meta.env.VITE_URL || ''}/api/gallery?perception_sort=${perception.value}&limit=${galleries.value.Limit}&page=${galleries.value.PrevPage}`
       );
       if (res.status == 200) {
-        this.galleries = res.data.data;
+        galleries.value = res.data.data;
       }
     };
 
     const nextPage = async () => {
       const res = await axios.get(
-        `/api/gallery?perception_sort=${perception}&limit=${galleries.Limit}&page=${galleries.NextPage}`
+        `${import.meta.env.VITE_URL || ''}/api/gallery?perception_sort=${perception.value}&limit=${galleries.value.Limit}&page=${galleries.value.NextPage}`
       );
       if (res.status == 200) {
-        this.galleries = res.data.data;
+        galleries.value = res.data.data;
       }
     };
 
     const goToPage = async (page) => {
       const res = await axios.get(
-        `/api/gallery?perception_sort=${perception}&limit=${galleries.Limit}&page=${page}`
+        `${import.meta.env.VITE_URL || ''}/api/gallery?perception_sort=${perception.value}&limit=${galleries.value.Limit}&page=${page}`
       );
       if (res.status == 200) {
-        this.galleries = res.data.data;
+        galleries.value = res.data.data;
       }
     };
 

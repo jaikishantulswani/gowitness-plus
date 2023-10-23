@@ -1,17 +1,17 @@
-FROM golang:1-bullseye as buildAPP
-
-LABEL maintainer="XCT"
-
-COPY . /src
-
-WORKDIR /src
-RUN make docker
-
 FROM node:lts-alpine as buildWeb
 COPY ./web /src/web
 WORKDIR /src/web
 RUN npm install
 RUN npm run build
+
+
+FROM golang:1-bullseye as buildAPP
+LABEL maintainer="XCT"
+COPY . /src
+COPY --from=buildWeb /src/web/dist /src/web/dist
+WORKDIR /src
+RUN make docker
+
 
 # final image
 # https://github.com/chromedp/docker-headless-shell#using-as-a-base-image

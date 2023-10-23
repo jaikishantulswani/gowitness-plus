@@ -74,6 +74,7 @@
               ><i class="fa-regular fa-eye"></i
             ></router-link>
             <a
+            v-if="gallery.Callback"
               class="btn btn-warning mx-1"
               aria-current="page"
               :href="`${gallery.Callback}/url/${gallery.IdUrl}`"
@@ -81,6 +82,7 @@
               ><i class="fa-regular fa-circle-up"></i
             ></a>
             <button
+            v-if="gallery.Callback"
               class="btn btn-info mx-1"
               @click="updateLabel(gallery.Callback, gallery.IdUrl)"
             >
@@ -204,7 +206,10 @@ export default {
     const modal = ref(false);
     const perception = ref(false);
     const perceptionLocal = localStorage.getItem("perception");
-    if (
+    if(!perceptionLocal){
+      localStorage.setItem("perception", false);
+    }
+    else if (
       perceptionLocal.toLowerCase() === "true" ||
       perceptionLocal.toLowerCase() === "false"
     ) {

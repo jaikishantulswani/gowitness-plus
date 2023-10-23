@@ -1,4 +1,4 @@
-FROM golang:1-bullseye as build
+FROM golang:1-bullseye as buildAPP
 
 LABEL maintainer="XCT"
 
@@ -6,6 +6,12 @@ COPY . /src
 
 WORKDIR /src
 RUN make docker
+
+FROM node:lts-alpine as buildWeb
+COPY ./web /src/web
+WORKDIR /src/web
+RUN npm install
+RUN npm build
 
 # final image
 # https://github.com/chromedp/docker-headless-shell#using-as-a-base-image
@@ -18,8 +24,8 @@ RUN export DEBIAN_FRONTEND=noninteractive \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
-COPY --from=build /src/gowitness /usr/local/bin
-COPY --from=build /src/web/dist /data/web/dist
+COPY --from=buildAPP /src/gowitness /usr/local/bin
+COPY --from=buildWeb /src/web/dist /data/web/dist
 EXPOSE 7171
 
 VOLUME ["/data"]

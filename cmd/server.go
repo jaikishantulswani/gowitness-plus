@@ -84,6 +84,8 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 			gin.SetMode(gin.ReleaseMode)
 		}
 
+		rsDB.Create(&storage.ConfigMachine{Key: "APIKey", Value: "default"})
+
 		c := cron.New()
 		c.AddFunc("@every 0h0m30s", func() {
 			// fmt.Println("Every 30 second")
@@ -129,7 +131,6 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 			}
 			wg.Wait()
 		})
-
 		c.Start()
 
 		r := gin.Default()
@@ -182,6 +183,8 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 
 			// For other system
 			api.GET("/list", apiURLHandler)
+			api.GET("/config/get", apiGetConfigHandler)
+			api.POST("/config/set", apiSetConfigHandler)
 			api.GET("/search", apiSearchHandler)
 			api.GET("/detail/:id", apiDetailHandler)
 			api.GET("/detail/:id/screenshot", apiDetailScreenshotHandler)
@@ -876,21 +879,44 @@ func apiLogHandler(c *gin.Context) {
 	var urls []storage.ScreenshotQueue
 	rsDB.Where("p_id = ?", -1).Find(&urls)
 
-	// var count int64
-	// rsDB.Model(&storage.ScreenshotQueue{}).Where("p_id > 0").Count(&count)
-	// fmt.Println(count)
-	// rsDB.Model(&storage.ScreenshotQueue{}).Where("ID = ?", 1).Update("PID", 1)
-	// var st_sc []storage.ScreenshotQueue
-	// rsDB.Find(&st_sc)
-	// for _, row := range st_sc {
-	// 	fmt.Println("values: ", row.ID, row.URL)
-	// }
-	// c.JSON(http.StatusCreated, gin.H{
-	// 	"status": st_sc,
-	// })
 	c.JSON(http.StatusOK, gin.H{
 		"status": true,
 		"data":   urls,
+	})
+}
+
+func apiGetConfigHandler(c *gin.Context) {
+	var config []storage.ConfigMachine
+	rsDB.Find(&config)
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": config,
+	})
+}
+
+func apiSetConfigHandler(c *gin.Context) {
+	type Request struct {
+		Key   string `json:"key"`
+		Value string `json:"value"`
+	}
+	var requestData Request
+	if err := c.ShouldBindJSON(&requestData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	if err := rsDB.Model(&storage.ConfigMachine{}).Where("Key = ?", requestData.Key).Update("Value", requestData.Value); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": false,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": true,
 	})
 }
 

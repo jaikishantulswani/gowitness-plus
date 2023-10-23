@@ -15,6 +15,7 @@ router.addRoute({ path: '/gallery', component: ()=>import('../views/Gallery.vue'
 router.addRoute({ path: '/table', component: ()=>import('../views/Table.vue') })
 router.addRoute({ path: '/submit', component: ()=>import('../views/Submit.vue') })
 router.addRoute({ path: '/log', component: ()=>import('../views/Log.vue') })
+router.addRoute({ path: '/config', component: ()=>import('../views/Config.vue') })
 router.addRoute({ path: '/detail/:id', component: ()=>import('../views/Detail.vue') })
 
 export default router

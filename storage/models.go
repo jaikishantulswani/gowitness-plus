@@ -188,3 +188,10 @@ type ScreenshotQueue struct {
 	Callback string
 	IdUrl    int `gorm:"default:0"`
 }
+
+type ConfigMachine struct {
+	gorm.Model
+
+	Key   string
+	Value string
+}

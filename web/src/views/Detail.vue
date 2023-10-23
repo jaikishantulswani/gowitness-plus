@@ -24,7 +24,7 @@
             class="card-img-top"
             loading="lazy"
             :src="'/screenshots/' + url.Data.Filename"
-            onerror="this.onerror=null; this.src='/assets/default.jfif'"
+            onerror="this.onerror=null; this.src='/default.jfif'"
             style="height: 100%; width: 100%"
           />
 

@@ -73,17 +73,15 @@
                   </div>
                 </div>
     
-                <div class="col-12">
-                  <label for="username" class="form-label">Username</label>
+                <div v-for="(config,key) in configs" :key="key" class="col-12">
                   <div class="input-group has-validation">
-                    <span class="input-group-text">@</span>
-                    <input type="text" class="form-control" id="username" placeholder="Username" >
-                  <div class="invalid-feedback">
-                      Your username is required.
-                    </div>
+                    <span class="input-group-text">{{config.Key}}</span>
+                    <input type="password" v-model="config.Value" class="form-control" id="username" placeholder="Username" >
                   </div>
                 </div>
-    
+
+                <button class="btn btn-warning" type="submit">Update</button>
+
                 <div class="col-12">
                   <label for="email" class="form-label">Email <span class="text-muted">(Optional)</span></label>
                   <input type="email" class="form-control" id="email" placeholder="you@example.com">
@@ -210,3 +208,23 @@
         </div>
       </main>
 </template>
+
+<script>
+import { ref } from "vue";
+import axios from "axios";
+export default {
+  setup() {
+    const configs = ref([]);
+    return {
+      configs,
+    };
+  },
+
+  async mounted() {
+    const res = await axios.get(`${import.meta.env.VITE_URL || ''}/api/config/get`);
+    if (res.status == 200) {
+      this.configs = res.data.data;
+    }
+  },
+};
+</script>

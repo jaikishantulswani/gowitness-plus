@@ -50,7 +50,7 @@
             v-else
             loading="lazy"
             :src="'/screenshots/' + gallery.Filename"
-            onerror="this.onerror=null; this.src='/assets/default.jfif'"
+            onerror="this.onerror=null; this.src='/default.jfif'"
             class="card-img-top"
             @click="selectGallery(gallery)"
           />
@@ -182,7 +182,7 @@
             v-else
             loading="lazy"
             :src="'/screenshots/' + galleryS.Filename"
-            onerror="this.onerror=null; this.src='/assets/default.jfif'"
+            onerror="this.onerror=null; this.src='/default.jfif'"
             style="height: 100%; width: 100%"
           />
         </div>
@@ -205,6 +205,7 @@ export default {
     const galleryS = ref({});
     const modal = ref(false);
     const perception = ref(false);
+    const configs = ref([]);
     const perceptionLocal = localStorage.getItem("perception");
     if(!perceptionLocal){
       localStorage.setItem("perception", false);
@@ -260,10 +261,13 @@ export default {
         {
           idUrl,
           label: 0,
-        }
+        },{
+          headers: {
+            "x-api-key": configs.value.APIKey
+        }}
       ).catch(error => {return false});
-      if(!res || res.error){
-        toast.error('Unknow error')
+      if(!res || res?.data.error){
+        toast.error(res?.data.error || 'Unknow error')
       }else{
         toast.success("Success");
       }
@@ -286,6 +290,7 @@ export default {
       galleryS,
       perception,
       toast,
+      configs,
 
       selectGallery,
       prevPage,
@@ -296,13 +301,17 @@ export default {
   },
 
   async mounted() {
-    const res = await axios.get(
+    let res = await axios.get(
       `${import.meta.env.VITE_URL || ''}/api/gallery?perception_sort=${
         this.perception
       }`
     );
     if (res.status == 200) {
       this.galleries = res.data.data;
+    }
+    res = await axios.get(`${import.meta.env.VITE_URL || ''}/api/config/get`);
+    if (res.status == 200) {
+      this.configs = res.data.data;
     }
   },
 };

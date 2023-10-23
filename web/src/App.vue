@@ -42,6 +42,7 @@
             >
           </li>
         </ul>
+        
         <div class="d-flex">
           <input
             class="form-control me-2"
@@ -50,6 +51,7 @@
             aria-label="Search"
           />
           <button class="btn btn-outline-success" type="submit">Search</button>
+          <router-link class="btn btn-outline-danger mx-1" type="submit" to="/config"><i class="fa-solid fa-gear"></i></router-link>
         </div>
       </div>
     </div>

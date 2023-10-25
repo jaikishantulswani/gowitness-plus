@@ -7,7 +7,7 @@
         <caption>
           URLS:
           {{
-            galleries?.Count ? galleries.Count : 0
+            records?.Count ? records.Count : 0
           }}
         </caption>
         <thead>

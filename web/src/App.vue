@@ -1,7 +1,7 @@
 <template>
   <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
     <div class="container-fluid">
-      <a class="navbar-brand" href="javascript:void(0)">Gowitness</a>
+      <a class="navbar-brand" href="javascript:void(0)">Gowitness <i class="fa-light fa-camera-retro"></i></a>
       <button
         class="navbar-toggler"
         type="button"

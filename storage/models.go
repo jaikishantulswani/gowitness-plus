@@ -193,6 +193,6 @@ type ConfigMachine struct {
 	gorm.Model
 
 	Key     string
-	Machine string
+	Machine string `gorm:"uniqueIndex"`
 	Value   string
 }

@@ -84,8 +84,6 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 			gin.SetMode(gin.ReleaseMode)
 		}
 
-		rsDB.Create(&storage.ConfigMachine{Key: "APIKey", Machine: "default", Value: "default"})
-
 		c := cron.New()
 		c.AddFunc("@every 0h0m30s", func() {
 			// fmt.Println("Every 30 second")
@@ -184,6 +182,7 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 
 			// For other system
 			api.GET("/list", apiURLHandler)
+			api.POST("/config/add", apiAddConfigHandler)
 			api.GET("/config/get", apiGetConfigHandler)
 			api.POST("/config/set", apiSetConfigHandler)
 			api.POST("/config/delete", apiDeleteConfigHandler)
@@ -893,6 +892,35 @@ func apiGetConfigHandler(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": config,
+	})
+}
+
+func apiAddConfigHandler(c *gin.Context) {
+	type Request struct {
+		Key     string `json:"key"`
+		Machine string `json:"machine"`
+		Value   string `json:"value"`
+	}
+	var requestData Request
+	if err := c.ShouldBindJSON(&requestData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	if err := rsDB.Create(&storage.ConfigMachine{Key: requestData.Key, Machine: requestData.Machine, Value: requestData.Value}); err.Error != nil {
+		fmt.Println(err.Error)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": false,
+			"error":  err.Error,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": true,
 	})
 }
 

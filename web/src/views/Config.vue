@@ -58,7 +58,13 @@
         </form>
       </div>
       <div class="col-md-7 col-lg-8">
-        <h4 class="mb-3">Billing address</h4>
+        <h4 class="mb-3">Config callback</h4>
+        <div class="input-group">
+          <input v-model="newKey.name" type="text" aria-label="First name" class="form-control" placeholder="Key name">
+          <input v-model="newKey.callback" type="text" aria-label="First name" class="form-control" placeholder="Callback">
+          <input v-model="newKey.value" type="text" aria-label="Last name" class="form-control" placeholder="Key value">
+          <button type="button" class="btn btn-primary" @click="addKey()">Add</button>
+        </div>
         <form class="needs-validation">
           <div
             v-for="(config, key) in configs"
@@ -213,8 +219,12 @@ import { useToast } from 'vue-toastification'
 export default {
   setup() {
     const configs = ref([]);
+    const newKey = ref({
+      name: '',
+      callback: '',
+      value:''
+    });
     const toast = useToast();
-
     const updateData = async () => {
       const res = await axios.get(
         `${import.meta.env.VITE_URL || ""}/api/config/get`
@@ -223,6 +233,27 @@ export default {
         configs.value = res.data.data;
       }
     };
+
+    const addKey = async() => {
+      if(!newKey.value.name || !newKey.value.callback || !newKey.value.value){
+        toast.error('Some input is empty')
+        return
+      }
+      const res = await axios.post(
+        `${import.meta.env.VITE_URL || ""}/api/config/add`,
+        {
+          key: newKey.value.name,
+          machine: newKey.value.callback,
+          value: newKey.value.value,
+        }
+      );
+      if (!res || res?.data.error) {
+        toast.error(res?.data?.error || 'Unknow error')
+      }else if (res?.data.status) {
+        toast.success("Success");
+        await updateData()
+      }
+    }
 
     const updateKey = async (config) => {
       const res = await axios.post(
@@ -233,11 +264,11 @@ export default {
           Value: config.Value,
         }
       );
-      if (res.status == 200) {
+      if (!res || res?.data.error) {
+        toast.error(res?.data?.error || 'Unknow error')
+      }else if (res?.data.status) {
         toast.success("Success");
         await updateData()
-      }else if (!res || res?.data.error) {
-        toast.error(res?.data?.error || 'Unknow error')
       }
     };
     const deleteKey = async (id) => {
@@ -247,20 +278,23 @@ export default {
           id,
         }
       );
-      if (res.status == 200) {
+      if (!res || res?.data.error) {
+        toast.error(res?.data?.error || 'Unknow error')
+      }else if (res?.data.status) {
         toast.success("Success");
         await updateData()
-      }else if (!res || res?.data.error) {
-        toast.error(res?.data?.error || 'Unknow error')
       }
     };
     return {
       configs,
+      newKey,
       toast,
 
       updateData,
+      addKey,
       updateKey,
       deleteKey,
+
     };
   },
 

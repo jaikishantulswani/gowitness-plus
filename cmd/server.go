@@ -517,6 +517,8 @@ func apiGalleryHandler(c *gin.Context) {
 	// perception hashing
 	if strings.TrimSpace(c.Query("perception_sort")) == "true" {
 		pager.OrderBy = []string{"perception_hash desc"}
+	} else {
+		pager.OrderBy = []string{"id desc"}
 	}
 
 	var urls []storage.URL

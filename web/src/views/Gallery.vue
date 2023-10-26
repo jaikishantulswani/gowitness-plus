@@ -179,20 +179,20 @@
             type="application/pdf"
             frameBorder="0"
             scrolling="auto"
-            style="height: 100% width: 100%"
+            class="cusimg"
           />
           <img
             v-else-if="galleryS.Screenshot"
             :src="'data:image/pngbase64,' + galleryS.Screenshot"
             alt=""
-            style="height: 100% width: 100%"
+            class="cusimg"
           />
           <img
             v-else
             loading="lazy"
             :src="'/screenshots/' + galleryS.Filename"
             onerror="this.onerror=null;this.src='/default.jfif'"
-            style="height: 100% width: 100%"
+            class="cusimg"
           />
         </div>
       </div>
@@ -432,3 +432,11 @@ export default {
   },
 }
 </script>
+
+<style scoped>
+.cusimg{
+  width: 100%;
+  height: 100%;
+}
+
+</style>

@@ -81,6 +81,13 @@
               target="_blank"
               ><i class="fa-regular fa-circle-up"></i
             ></a>
+            <a
+            v-if="gallery.Callback"
+            class="btn btn-info m-1"
+            aria-current="page"
+            @click="bookmarkdUrl(gallery.Callback, gallery.IdUrl)"
+            target="_blank"
+            ><i class="fa-regular fa-bookmark"></i></a>
             <div v-if="gallery.Callback" class="btn-group m-1">
               <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" @click="getLabels(gallery.Callback)">
                 Update Label
@@ -370,6 +377,38 @@ export default {
       }
     }
 
+    const bookmarkdUrl = async (callback, idUrl) => {
+      if (!callback) {
+        toast.error("Callback is empty")
+        return
+      }
+      const APIKey = configs.value.find((c) => c.Machine === callback)
+      if(!APIKey){
+        toast.error(`API key for machine ${callback} is not found`)
+        return
+      }
+      const res = await axios
+        .post(
+          `${callback}/api/callback/url/bookmark`,
+          {
+            idUrl,
+          },
+          {
+            headers: {
+              "x-api-key": APIKey.Value,
+            },
+          }
+        )
+        .catch((error) => {
+          return false
+        })
+      if (!res || res?.data.error) {
+        toast.error(res?.data?.error || "Unknow error")
+      } else {
+        toast.success("Success")
+      }
+    }
+
     watch(escape, (v) => {
       if (v) {
         modal.value = false
@@ -401,6 +440,7 @@ export default {
       goToPage,
       updateLabel,
       runAgent,
+      bookmarkdUrl,
     }
   },
 

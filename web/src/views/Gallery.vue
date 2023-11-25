@@ -337,11 +337,11 @@ export default {
       }
     }
 
-    const goToPage = async (page) => {
+    const goToPage = async (cpage) => {
       const res = await axios.get(
         `${import.meta.env.VITE_URL || ""}/api/gallery?perception_sort=${
           perception.value
-        }&limit=${galleries.value.Limit}&page=${page}&hidden=${hidden.value}`
+        }&limit=${galleries.value.Limit}&page=${cpage}&hidden=${hidden.value}`
       )
       if (res.status == 200) {
         page.value = galleries.value.NextPage

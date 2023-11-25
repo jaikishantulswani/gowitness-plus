@@ -62,9 +62,9 @@ func (p *Pagination) Page(data interface{}) (*PaginationPage, error) {
 	}
 
 	if p.Hidden {
-		db.Model(data).Where("hidden = ?", p.Hidden).Count(&count)
+		db.Model(data).Where("hidden = ?", false).Count(&count)
 
-		if err := db.Where("hidden = ?", p.Hidden).Limit(p.Limit).Offset(offset).Preload("Technologies").Find(data).Error; err != nil {
+		if err := db.Where("hidden = ?", false).Limit(p.Limit).Offset(offset).Preload("Technologies").Find(data).Error; err != nil {
 			return nil, err
 		}
 	} else {

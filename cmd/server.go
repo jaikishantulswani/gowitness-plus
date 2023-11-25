@@ -550,6 +550,7 @@ func apiGalleryHandler(c *gin.Context) {
 		pager.OrderBy = []string{"id desc"}
 	}
 
+	// Khong show hidden
 	if strings.TrimSpace(c.Query("hidden")) == "true" {
 		pager.Hidden = true
 	} else {

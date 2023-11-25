@@ -147,7 +147,7 @@
             >
           </li>
           <li class="page-item">
-            <a class="page-link" href="javascript:void(0)">{{
+            <a class="page-link active" href="javascript:void(0)">{{
               galleries.Page
             }}</a>
           </li>

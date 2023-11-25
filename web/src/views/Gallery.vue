@@ -19,6 +19,19 @@
               >
             </div>
           </td>
+          <td>
+            <div class="form-check form-switch">
+              <input
+                v-model="hidden"
+                class="form-check-input"
+                type="checkbox"
+                id="flexSwitchCheckDefault"
+              />
+              <label class="form-check-label" for="flexSwitchCheckDefault"
+                >Don't show hidden</label
+              >
+            </div>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -71,8 +84,7 @@
               class="btn btn-primary m-1"
               aria-current="page"
               :to="`/detail/${gallery.ID}`"
-              ><i class="fa-regular fa-eye"></i
-            ></router-link>
+              ><i class="fa-regular fa-memo"></i></router-link>
             <a
               v-if="gallery.Callback"
               class="btn btn-warning m-1"
@@ -88,6 +100,12 @@
             @click="bookmarkdUrl(gallery.Callback, gallery.IdUrl)"
             target="_blank"
             ><i class="fa-regular fa-bookmark"></i></a>
+            <a
+            class="btn btn-secondary m-1"
+            aria-current="page"
+            @click="hiddenUrl(gallery.ID,!gallery.Hidden)"
+            target="_blank"
+            ><i :class="gallery.Hidden ? 'fa-regular fa-eye-slash': 'fa-regular fa-eye'"></i></a>
             <div v-if="gallery.Callback" class="btn-group m-1">
               <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" @click="getLabels(gallery.Callback)">
                 Update Label
@@ -225,6 +243,8 @@ export default {
     const callbacks = ref([])
     const labels = ref([])
     const agents = ref([])
+    const hidden = ref(true)
+
     const perceptionLocal = localStorage.getItem("perception")
     if (!perceptionLocal) {
       localStorage.setItem("perception", false)
@@ -236,6 +256,19 @@ export default {
     } else {
       localStorage.setItem("perception", false)
     }
+
+    const hiddenLocal = localStorage.getItem("hidden")
+    if (!hiddenLocal) {
+      localStorage.setItem("hidden", true)
+    } else if (
+      hiddenLocal.toLowerCase() === "true" ||
+      hiddenLocal.toLowerCase() === "false"
+    ) {
+      hidden.value = hiddenLocal.toLowerCase() === "true"
+    } else {
+      localStorage.setItem("hidden", false)
+    }
+
     const { escape } = useMagicKeys()
     const selectGallery = (gallery) => {
       modal.value = true
@@ -261,7 +294,7 @@ export default {
       let res = await axios.get(
         `${import.meta.env.VITE_URL || ""}/api/gallery?perception_sort=${
           perception.value
-        }`
+        }&hidden=${hidden.value}`
       )
       if (res.status == 200) {
         galleries.value = res.data.data
@@ -409,14 +442,33 @@ export default {
       }
     }
 
+    const hiddenUrl = async(id,hidden) =>{
+      console.log(hidden)
+      const res = await axios.post(
+        `${import.meta.env.VITE_URL || ""}/api/url/hidden`,
+        {
+          id,
+          hidden
+        }
+      );
+      if (!res || res?.data.error) {
+        toast.error(res?.data?.error || 'Unknow error')
+      }else if (res?.data.status) {
+        toast.success("Success");
+        await updateData()
+      }
+    }
+
     watch(escape, (v) => {
       if (v) {
         modal.value = false
       }
     })
-
     watch(perception, (v) => {
       localStorage.setItem("perception", v)
+    })
+    watch(hidden, (v) => {
+      localStorage.setItem("hidden", v)
     })
 
     return {
@@ -430,6 +482,7 @@ export default {
       callbacks,
       labels,
       agents,
+      hidden,
 
       updateData,
       getLabels,
@@ -441,6 +494,7 @@ export default {
       updateLabel,
       runAgent,
       bookmarkdUrl,
+      hiddenUrl,
     }
   },
 

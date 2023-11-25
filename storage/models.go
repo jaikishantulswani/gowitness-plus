@@ -26,6 +26,7 @@ type URL struct {
 	Screenshot     string
 	Callback       string
 	IdUrl          int
+	Hidden         bool `gorm:"default:false"`
 
 	TLS TLS
 

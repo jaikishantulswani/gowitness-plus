@@ -181,6 +181,7 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 			api.GET("/table", apiTableHandler)
 
 			// For other system
+			api.POST("/url/hidden", apiUrlHiddenHandler)
 			api.GET("/list", apiURLHandler)
 			api.POST("/config/add", apiAddConfigHandler)
 			api.GET("/config/get", apiGetConfigHandler)
@@ -453,6 +454,34 @@ func getPageLimit(c *gin.Context) (page int, limit int, err error) {
 
 // API request handlers follow here
 // --
+func apiUrlHiddenHandler(c *gin.Context) {
+	type Request struct {
+		Id     int  `json:"id"`
+		Hidden bool `json:"hidden"`
+	}
+	var requestData Request
+	if err := c.ShouldBindJSON(&requestData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": "error",
+			"error":  err.Error(),
+		})
+		return
+	}
+	fmt.Println(requestData.Hidden)
+
+	if err := rsDB.Model(&storage.URL{}).Where("ID = ?", requestData.Id).Update("Hidden", requestData.Hidden); err.Error != nil {
+		fmt.Println(err.Error)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": false,
+			"error":  err.Error,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": true,
+	})
+}
 
 func apiStatisticHandler(c *gin.Context) {
 
@@ -519,6 +548,12 @@ func apiGalleryHandler(c *gin.Context) {
 		pager.OrderBy = []string{"perception_hash desc"}
 	} else {
 		pager.OrderBy = []string{"id desc"}
+	}
+
+	if strings.TrimSpace(c.Query("hidden")) == "true" {
+		pager.Hidden = true
+	} else {
+		pager.Hidden = false
 	}
 
 	var urls []storage.URL

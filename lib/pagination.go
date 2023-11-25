@@ -28,6 +28,7 @@ type Pagination struct {
 	CurrPage int
 	Limit    int
 	OrderBy  []string
+	Hidden   bool
 }
 
 // Page pages a dataset
@@ -54,16 +55,24 @@ func (p *Pagination) Page(data interface{}) (*PaginationPage, error) {
 		pagination.Ordered = false
 	}
 
-	db.Model(data).Count(&count)
-
 	if p.CurrPage == 1 {
 		offset = 0
 	} else {
 		offset = (p.CurrPage - 1) * p.Limit
 	}
 
-	if err := db.Limit(p.Limit).Offset(offset).Preload("Technologies").Find(data).Error; err != nil {
-		return nil, err
+	if p.Hidden {
+		db.Model(data).Where("hidden = ?", p.Hidden).Count(&count)
+
+		if err := db.Where("hidden = ?", p.Hidden).Limit(p.Limit).Offset(offset).Preload("Technologies").Find(data).Error; err != nil {
+			return nil, err
+		}
+	} else {
+		db.Model(data).Count(&count)
+
+		if err := db.Limit(p.Limit).Offset(offset).Preload("Technologies").Find(data).Error; err != nil {
+			return nil, err
+		}
 	}
 
 	pagination.Count = count

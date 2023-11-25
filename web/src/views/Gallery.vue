@@ -244,6 +244,8 @@ export default {
     const labels = ref([])
     const agents = ref([])
     const hidden = ref(true)
+    const page = ref(1)
+    const limit = ref(66)
 
     const perceptionLocal = localStorage.getItem("perception")
     if (!perceptionLocal) {
@@ -294,7 +296,7 @@ export default {
       let res = await axios.get(
         `${import.meta.env.VITE_URL || ""}/api/gallery?perception_sort=${
           perception.value
-        }&hidden=${hidden.value}`
+        }&limit=${limit.value}&page=${page.value}&hidden=${hidden.value}`
       )
       if (res.status == 200) {
         galleries.value = res.data.data
@@ -309,9 +311,11 @@ export default {
       const res = await axios.get(
         `${import.meta.env.VITE_URL || ""}/api/gallery?perception_sort=${
           perception.value
-        }&limit=${galleries.value.Limit}&page=${galleries.value.PrevPage}`
+        }&limit=${galleries.value.Limit}&page=${galleries.value.PrevPage}&hidden=${hidden.value}`
       )
       if (res.status == 200) {
+        page.value = galleries.value.NextPage
+        limit.value = galleries.value.Limit
         galleries.value = res.data.data
       } else if (!res || res?.data.error) {
         toast.error(res?.data?.error || "Unknow error")
@@ -322,9 +326,11 @@ export default {
       const res = await axios.get(
         `${import.meta.env.VITE_URL || ""}/api/gallery?perception_sort=${
           perception.value
-        }&limit=${galleries.value.Limit}&page=${galleries.value.NextPage}`
+        }&limit=${galleries.value.Limit}&page=${galleries.value.NextPage}&hidden=${hidden.value}`
       )
       if (res.status == 200) {
+        page.value = galleries.value.NextPage
+        limit.value = galleries.value.Limit
         galleries.value = res.data.data
       } else if (!res || res?.data.error) {
         toast.error(res?.data?.error || "Unknow error")
@@ -335,9 +341,11 @@ export default {
       const res = await axios.get(
         `${import.meta.env.VITE_URL || ""}/api/gallery?perception_sort=${
           perception.value
-        }&limit=${galleries.value.Limit}&page=${page}`
+        }&limit=${galleries.value.Limit}&page=${page}&hidden=${hidden.value}`
       )
       if (res.status == 200) {
+        page.value = galleries.value.NextPage
+        limit.value = galleries.value.Limit
         galleries.value = res.data.data
       } else if (!res || res?.data.error) {
         toast.error(res?.data?.error || "Unknow error")
@@ -483,6 +491,8 @@ export default {
       labels,
       agents,
       hidden,
+      page,
+      limit,
 
       updateData,
       getLabels,

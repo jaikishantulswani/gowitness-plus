@@ -64,13 +64,13 @@ func (p *Pagination) Page(data interface{}) (*PaginationPage, error) {
 	if p.Hidden {
 		db.Model(data).Where("hidden = ?", false).Count(&count)
 
-		if err := db.Where("hidden = ?", false).Limit(p.Limit).Offset(offset).Preload("Technologies").Find(data).Error; err != nil {
+		if err := db.Select("ID", "CreatedAt", "UpdatedAt", "URL", "FinalURL", "ResponseCode", "Title", "Filename", "IsPDF", "PerceptionHash", "Screenshot", "Callback", "IdUrl", "Hidden").Where("hidden = ?", false).Limit(p.Limit).Offset(offset).Preload("Technologies").Find(data).Error; err != nil {
 			return nil, err
 		}
 	} else {
 		db.Model(data).Count(&count)
 
-		if err := db.Limit(p.Limit).Offset(offset).Preload("Technologies").Find(data).Error; err != nil {
+		if err := db.Select("ID", "CreatedAt", "UpdatedAt", "URL", "FinalURL", "ResponseCode", "Title", "Filename", "IsPDF", "PerceptionHash", "Screenshot", "Callback", "IdUrl", "Hidden").Limit(p.Limit).Offset(offset).Preload("Technologies").Find(data).Error; err != nil {
 			return nil, err
 		}
 	}

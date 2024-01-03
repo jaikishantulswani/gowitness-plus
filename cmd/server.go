@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/chikamim/nilsimsa"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
@@ -193,6 +194,7 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 			api.POST("/screenshot", apiScreenshotHandler)
 			api.POST("/screenshot/v2", apiScreenshotHandlerV2) // screenshot with queue
 			api.POST("/screenshot/v3", apiScreenshotHandlerV3)
+			api.GET("/check-samesite", apiCheckSameSite)
 		}
 
 		log.Info().Str("address", options.ServerAddr).Msg("server listening")
@@ -452,8 +454,66 @@ func getPageLimit(c *gin.Context) (page int, limit int, err error) {
 	return
 }
 
+func checkNilsimsaHash(hash1, hash2 string) bool {
+	// Implement your hash checking logic here
+	// For now, let's just compare the hashes directly
+	return nilsimsa.DiffHexScore(hash1, hash2) > 0.6
+}
+
+func classifySites(sites []storage.URL) map[string][]storage.URL {
+	groups := make(map[string][]storage.URL)
+	added := make(map[int]bool)
+
+	for i := 0; i < len(sites); i++ {
+		if added[i] {
+			continue
+		}
+		for j := i + 1; j < len(sites); j++ {
+			if checkNilsimsaHash(sites[i].NilsimsaHash, sites[j].NilsimsaHash) {
+				groups[sites[i].NilsimsaHash] = append(groups[sites[i].NilsimsaHash], sites[j])
+				added[j] = true
+			}
+		}
+		// Add the site itself to its group
+		groups[sites[i].NilsimsaHash] = append(groups[sites[i].NilsimsaHash], sites[i])
+		added[i] = true
+	}
+
+	return groups
+}
+
 // API request handlers follow here
 // --
+func apiCheckSameSite(c *gin.Context) {
+	var urls []storage.URL
+	var sameHashs []storage.SameHash
+	rsDB.Select("ID", "URL", "PerceptionHash", "NilsimsaHash", "IdUrl", "SameSite").Where("same_site = ?", 0).Find(&urls)
+	rsDB.Find(&sameHashs)
+	groups := classifySites(urls)
+
+	for hash, sites := range groups {
+		for _, shash := range sameHashs {
+			if checkNilsimsaHash(shash.NilsimsaHash, hash) {
+				tx := rsDB.Begin()
+				for _, site := range sites {
+					tx.Model(&storage.URL{}).Where("same_site = ?", site.ID).Update("SameSite", shash.IdUrl)
+				}
+				tx.Commit()
+				break
+			}
+		}
+		fmt.Printf("Hash: %s\n", hash)
+		for _, site := range sites {
+			fmt.Printf("ID: %d, URL: %s, Hash: %s\n", site.ID, site.URL, site.NilsimsaHash)
+		}
+		fmt.Println()
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"susscess": true,
+	})
+}
+
 func apiUrlHiddenHandler(c *gin.Context) {
 	type Request struct {
 		Id     int  `json:"id"`

@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"encoding/json"
 	"strconv"
 	"time"
 
@@ -64,29 +63,29 @@ func (url *URL) MarshallCSV() (res []string) {
 }
 
 // MarshalJSON returns JSON encoding of url. Implements json.Marshaler.
-func (url *URL) MarshalJSON() ([]byte, error) {
-	var tmp struct {
-		URL            string `json:"url"`
-		FinalURL       string `json:"final_url"`
-		ResponseCode   int    `json:"response_code"`
-		ResponseReason string `json:"response_reason"`
-		Proto          string `json:"proto"`
-		ContentLength  int64  `json:"content_length"`
-		Title          string `json:"title"`
-		Filename       string `json:"file_name"`
-	}
+// func (url *URL) MarshallJSON() ([]byte, error) {
+// 	var tmp struct {
+// 		URL            string `json:"url"`
+// 		FinalURL       string `json:"final_url"`
+// 		ResponseCode   int    `json:"response_code"`
+// 		ResponseReason string `json:"response_reason"`
+// 		Proto          string `json:"proto"`
+// 		ContentLength  int64  `json:"content_length"`
+// 		Title          string `json:"title"`
+// 		Filename       string `json:"file_name"`
+// 	}
 
-	tmp.URL = url.URL
-	tmp.FinalURL = url.FinalURL
-	tmp.ResponseCode = url.ResponseCode
-	tmp.ResponseReason = url.ResponseReason
-	tmp.Proto = url.Proto
-	tmp.ContentLength = url.ContentLength
-	tmp.Title = url.Title
-	tmp.Filename = url.Filename
+// 	tmp.URL = url.URL
+// 	tmp.FinalURL = url.FinalURL
+// 	tmp.ResponseCode = url.ResponseCode
+// 	tmp.ResponseReason = url.ResponseReason
+// 	tmp.Proto = url.Proto
+// 	tmp.ContentLength = url.ContentLength
+// 	tmp.Title = url.Title
+// 	tmp.Filename = url.Filename
 
-	return json.Marshal(&tmp)
-}
+// 	return json.Marshal(&tmp)
+// }
 
 // Header contains an HTTP header
 type Header struct {

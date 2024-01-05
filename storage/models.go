@@ -38,12 +38,6 @@ type URL struct {
 	Network      []NetworkLog
 }
 
-type SameHash struct {
-	IdUrl          int // IdUrl goc cho cac url khac tham chieu
-	NilsimsaHash   string
-	PerceptionHash string
-}
-
 // AddHeader adds a new header to a URL
 func (url *URL) AddHeader(key string, value string) {
 	url.Headers = append(url.Headers, Header{

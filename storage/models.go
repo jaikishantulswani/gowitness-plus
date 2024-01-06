@@ -20,12 +20,14 @@ type URL struct {
 	Title          string
 	Filename       string
 	IsPDF          bool
-	PerceptionHash string
+	PerceptionHash string // Compare 2 image
 	DOM            string
 	Screenshot     string
 	Callback       string
 	IdUrl          int
-	Hidden         bool `gorm:"default:false"`
+	NilsimsaHash   string // Compare 2 DOM
+	SameSite       int    // if 0 is not check else if -1 is not same any site, esle = IdUrl
+	Hidden         bool   `gorm:"default:false"`
 
 	TLS TLS
 

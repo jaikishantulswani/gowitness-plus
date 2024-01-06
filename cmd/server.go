@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/chikamim/nilsimsa"
+	"github.com/corona10/goimagehash"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
@@ -193,6 +195,7 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 			api.POST("/screenshot", apiScreenshotHandler)
 			api.POST("/screenshot/v2", apiScreenshotHandlerV2) // screenshot with queue
 			api.POST("/screenshot/v3", apiScreenshotHandlerV3)
+			api.GET("/samesite/check", apiCheckSameSite)
 		}
 
 		log.Info().Str("address", options.ServerAddr).Msg("server listening")
@@ -452,8 +455,62 @@ func getPageLimit(c *gin.Context) (page int, limit int, err error) {
 	return
 }
 
+func checkHash(hash1, hash2 string, htype int) bool {
+	// Implement your hash checking logic here
+	// For now, let's just compare the hashes directly
+	if hash1 == hash2 {
+		return true
+	}
+	if htype == 1 {
+		return nilsimsa.DiffHexScore(hash1, hash2) > 0.6
+	} else if htype == 2 {
+		hash1, _ := strconv.ParseUint(hash1, 10, 64)
+		hash2, _ := strconv.ParseUint(hash2, 10, 64)
+		newImageHash := goimagehash.NewImageHash(hash1, 2)
+		newImageHash2 := goimagehash.NewImageHash(hash2, 2)
+		distance, _ := newImageHash.Distance(newImageHash2)
+		return distance < 20
+	} else {
+		return false
+	}
+
+}
+
 // API request handlers follow here
 // --
+func apiCheckSameSite(c *gin.Context) {
+	var urls []storage.URL
+	var sameUrls []storage.URL
+	// var sameHashs []storage.SameHash
+
+	rsDB.Select("ID", "URL", "PerceptionHash", "NilsimsaHash", "IdUrl", "SameSite").Where("same_site = ?", 0).Find(&urls)
+	rsDB.Select("ID", "PerceptionHash", "NilsimsaHash").Where("same_site = ID").Find(&sameUrls)
+	if len(sameUrls) == 0 && len(urls) != 0 {
+		rsDB.Model(&storage.URL{}).Where("ID = ?", urls[0].ID).Update("SameSite", urls[0].ID)
+		rsDB.Select("ID", "PerceptionHash", "NilsimsaHash").Where("same_site = ID").Find(&sameUrls)
+	}
+
+	for _, url := range urls {
+		checksamehash := false
+		for _, shash := range sameUrls {
+			if checkHash(shash.NilsimsaHash, url.NilsimsaHash, 1) && checkHash(shash.PerceptionHash, url.PerceptionHash, 2) {
+				rsDB.Model(&storage.URL{}).Where("ID = ?", url.ID).Update("SameSite", shash.ID)
+				checksamehash = true
+				break
+			}
+		}
+		if !checksamehash {
+			rsDB.Model(&storage.URL{}).Where("ID = ?", url.ID).Update("SameSite", url.ID)
+			rsDB.Select("ID", "PerceptionHash", "NilsimsaHash").Where("same_site = ID").Find(&sameUrls)
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": true,
+	})
+
+}
+
 func apiUrlHiddenHandler(c *gin.Context) {
 	type Request struct {
 		Id     int  `json:"id"`
@@ -467,10 +524,8 @@ func apiUrlHiddenHandler(c *gin.Context) {
 		})
 		return
 	}
-	fmt.Println(requestData.Hidden)
 
 	if err := rsDB.Model(&storage.URL{}).Where("ID = ?", requestData.Id).Update("Hidden", requestData.Hidden); err.Error != nil {
-		fmt.Println(err.Error)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": false,
 			"error":  err.Error,
@@ -555,6 +610,12 @@ func apiGalleryHandler(c *gin.Context) {
 		pager.Hidden = true
 	} else {
 		pager.Hidden = false
+	}
+
+	if strings.TrimSpace(c.Query("samesite")) == "true" {
+		pager.Samesite = true
+	} else {
+		pager.Samesite = false
 	}
 
 	var urls []storage.URL
@@ -949,7 +1010,6 @@ func apiAddConfigHandler(c *gin.Context) {
 	}
 
 	if err := rsDB.Create(&storage.ConfigMachine{Key: requestData.Key, Machine: requestData.Machine, Value: requestData.Value}); err.Error != nil {
-		fmt.Println(err.Error)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": false,
 			"error":  err.Error,
@@ -979,7 +1039,6 @@ func apiSetConfigHandler(c *gin.Context) {
 	}
 
 	if err := rsDB.Model(&storage.ConfigMachine{}).Where("ID = ?", requestData.Id).Update("Value", requestData.Value).Update("Machine", requestData.Machine); err.Error != nil {
-		fmt.Println(err.Error)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status": false,
 			"error":  err.Error,

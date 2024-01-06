@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chikamim/nilsimsa"
 	"github.com/chromedp/cdproto/inspector"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
@@ -91,6 +92,27 @@ func NewChrome() *Chrome {
 		wappalyzer: NewWappalyzer(),
 	}
 }
+
+// Remove innerHTML
+// func getDOMStructure(n *html.Node) string {
+// 	var domStructure strings.Builder
+
+// 	var removeTextNodes func(*html.Node)
+// 	removeTextNodes = func(n *html.Node) {
+// 		if n.Type == html.TextNode {
+// 			n.Data = ""
+// 		}
+// 		for c := n.FirstChild; c != nil; c = c.NextSibling {
+// 			removeTextNodes(c)
+// 		}
+// 	}
+
+// 	removeTextNodes(n)
+
+// 	html.Render(&domStructure, n)
+
+// 	return domStructure.String()
+// }
 
 // Preflight will preflight a url
 func (chrome *Chrome) Preflight(url *url.URL) (result *PreflightResult, err error) {
@@ -236,6 +258,19 @@ func (chrome *Chrome) StoreRequest(db *gorm.DB, preflight *PreflightResult, scre
 			IP:          log.IP,
 			Error:       log.Error,
 		})
+	}
+
+	// add nilsimsa hash
+	if screenshot.DOM != "" {
+		record.NilsimsaHash = nilsimsa.HexSum([]byte(screenshot.DOM))
+		// doc, err := html.Parse(strings.NewReader(screenshot.DOM))
+		// if err == nil {
+		// Get DOM structure without content
+		// domStructure := getDOMStructure(doc)
+
+		// Hash the DOM structure
+		// record.NilsimsaHash = nilsimsa.HexSum([]byte(screenshot.DOM))
+		// }
 	}
 
 	db.Create(record)

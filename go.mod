@@ -3,11 +3,9 @@ module github.com/sensepost/gowitness
 go 1.19
 
 require (
-	github.com/chromedp/cdproto v0.0.0-20231205062650-00455a960d61
-	github.com/chromedp/chromedp v0.9.3
+	github.com/chromedp/cdproto v0.0.0-20230625224106-7fafe342e117
+	github.com/chromedp/chromedp v0.9.1
 	github.com/corona10/goimagehash v1.1.0
-	github.com/gin-contrib/cors v1.5.0
-	github.com/gin-contrib/static v0.0.1
 	github.com/gin-gonic/gin v1.9.1
 	github.com/h2non/filetype v1.1.3
 	github.com/olekukonko/tablewriter v0.0.5
@@ -16,11 +14,10 @@ require (
 	github.com/rs/zerolog v1.31.0
 	github.com/spf13/cobra v1.8.0
 	github.com/tomsteele/go-nmap v0.0.0-20191202052157-3507e0b03523
-	golang.org/x/net v0.19.0
-	gopkg.in/robfig/cron.v2 v2.0.0-20150107220207-be2e0b0deed5
-	gorm.io/driver/postgres v1.5.4
-	gorm.io/driver/sqlite v1.5.4
-	gorm.io/gorm v1.25.5
+	golang.org/x/net v0.12.0
+	gorm.io/driver/postgres v1.5.2
+	gorm.io/driver/sqlite v1.5.2
+	gorm.io/gorm v1.25.2
 )
 
 require (

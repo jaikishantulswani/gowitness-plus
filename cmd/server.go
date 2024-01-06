@@ -195,7 +195,7 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 			api.POST("/screenshot", apiScreenshotHandler)
 			api.POST("/screenshot/v2", apiScreenshotHandlerV2) // screenshot with queue
 			api.POST("/screenshot/v3", apiScreenshotHandlerV3)
-			api.GET("/check-samesite", apiCheckSameSite)
+			api.GET("/samesite/check", apiCheckSameSite)
 		}
 
 		log.Info().Str("address", options.ServerAddr).Msg("server listening")
@@ -506,7 +506,7 @@ func apiCheckSameSite(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"susscess": true,
+		"status": true,
 	})
 
 }
@@ -610,6 +610,12 @@ func apiGalleryHandler(c *gin.Context) {
 		pager.Hidden = true
 	} else {
 		pager.Hidden = false
+	}
+
+	if strings.TrimSpace(c.Query("samesite")) == "true" {
+		pager.Samesite = true
+	} else {
+		pager.Samesite = false
 	}
 
 	var urls []storage.URL

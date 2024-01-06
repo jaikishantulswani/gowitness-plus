@@ -29,6 +29,7 @@ type Pagination struct {
 	Limit    int
 	OrderBy  []string
 	Hidden   bool
+	Samesite bool
 }
 
 // Page pages a dataset
@@ -61,18 +62,23 @@ func (p *Pagination) Page(data interface{}) (*PaginationPage, error) {
 		offset = (p.CurrPage - 1) * p.Limit
 	}
 
+	query := db.Model(data)
 	if p.Hidden {
-		db.Model(data).Where("hidden = ?", false).Count(&count)
+		// db.Model(data).Where("hidden = ?", false).Count(&count)
+		query.Where("hidden = ?", false)
+	}
+	// else {
+	// db.Model(data).Count(&count)
+	// query.Model(data).Count(&count)
+	// }
+	if !p.Samesite {
+		query.Where("same_site = ID")
+	}
+	query.Model(data).Count(&count)
 
-		if err := db.Select("ID", "CreatedAt", "UpdatedAt", "URL", "FinalURL", "ResponseCode", "Title", "Filename", "IsPDF", "PerceptionHash", "SameSite", "NilsimsaHash", "Screenshot", "Callback", "IdUrl", "Hidden").Where("hidden = ?", false).Limit(p.Limit).Offset(offset).Preload("Technologies").Find(data).Error; err != nil {
-			return nil, err
-		}
-	} else {
-		db.Model(data).Count(&count)
-
-		if err := db.Select("ID", "CreatedAt", "UpdatedAt", "URL", "FinalURL", "ResponseCode", "Title", "Filename", "IsPDF", "PerceptionHash", "SameSite", "NilsimsaHash", "Screenshot", "Callback", "IdUrl", "Hidden").Limit(p.Limit).Offset(offset).Preload("Technologies").Find(data).Error; err != nil {
-			return nil, err
-		}
+	err := query.Select("ID", "CreatedAt", "UpdatedAt", "URL", "FinalURL", "ResponseCode", "Title", "Filename", "IsPDF", "PerceptionHash", "SameSite", "NilsimsaHash", "Screenshot", "Callback", "IdUrl", "Hidden").Limit(p.Limit).Offset(offset).Preload("Technologies").Find(data).Error
+	if err != nil {
+		return nil, err
 	}
 
 	pagination.Count = count

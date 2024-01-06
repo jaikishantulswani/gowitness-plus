@@ -16,7 +16,7 @@
 
 ## screenshots
 
-![dark](images/gowitness-detail.png)
+![dark](images/gowitness-detail2.png)
 
 ## credits
 
@@ -51,5 +51,6 @@ sudo openssl dhparam -out nginx/ssl/dhparam.pem 2048
 docker-compose up
 ```  
 
-- [ ] Callback function for other tools
+- [X] Group the same websites by perceptual hashing and nilsimsa hashing.
+- [X] Callback function for other tools
 - [ ] Truncate old data

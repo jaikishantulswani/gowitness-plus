@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
+	"image/png"
+
 	// "html/template"
 	"io/fs"
 	"net/http"
@@ -196,6 +199,7 @@ $ gowitness server --address 127.0.0.1:9000 --allow-insecure-uri`,
 			api.POST("/screenshot/v2", apiScreenshotHandlerV2) // screenshot with queue
 			api.POST("/screenshot/v3", apiScreenshotHandlerV3)
 			api.GET("/samesite/check", apiCheckSameSite)
+			api.GET("/samesite/hash", apiHashSameSite)
 		}
 
 		log.Info().Str("address", options.ServerAddr).Msg("server listening")
@@ -461,6 +465,9 @@ func checkHash(hash1, hash2 string, htype int) bool {
 	if hash1 == hash2 {
 		return true
 	}
+	if hash1 == "" || hash2 == "" {
+		return false
+	}
 	if htype == 1 {
 		return nilsimsa.DiffHexScore(hash1, hash2) > 0.6
 	} else if htype == 2 {
@@ -509,6 +516,46 @@ func apiCheckSameSite(c *gin.Context) {
 		"status": true,
 	})
 
+}
+
+func apiHashSameSite(c *gin.Context) {
+	var urls []storage.URL
+	var NilsimsaHash string
+	rsDB.Select("ID", "PerceptionHash", "NilsimsaHash", "DOM").Where("perception_hash IS NULL").Or("nilsimsa_hash IS NULL").Find(&urls)
+	for _, url := range urls {
+		if url.NilsimsaHash == "" && url.DOM != "" {
+			NilsimsaHash = nilsimsa.HexSum([]byte(url.DOM))
+			var dburl storage.URL
+			rsDB.First(&dburl, url.ID)
+			dburl.NilsimsaHash = NilsimsaHash
+			rsDB.Save(&dburl)
+		}
+		if url.PerceptionHash == "" && url.Filename != "" {
+			p := options.ScreenshotPath + "/" + url.Filename
+			screenshot, err := os.ReadFile(p)
+			if err != nil {
+				continue
+			}
+
+			img, err := png.Decode(bytes.NewReader(screenshot))
+			if err != nil {
+				continue
+			}
+
+			comp, err := goimagehash.PerceptionHash(img)
+			if err != nil {
+				continue
+			}
+			var dburl storage.URL
+			rsDB.First(&dburl, url.ID)
+			dburl.PerceptionHash = comp.ToString()
+			rsDB.Save(&dburl)
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": true,
+	})
 }
 
 func apiUrlHiddenHandler(c *gin.Context) {

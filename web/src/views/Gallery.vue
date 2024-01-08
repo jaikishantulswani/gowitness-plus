@@ -27,6 +27,7 @@
           <td>
             <div class="btn-group" role="group" aria-label="Basic mixed styles example">
               <button type="button" class="btn btn-primary" @click="checkSamesite()">Check samesite</button>
+              <button type="button" class="btn btn-info" @click="hashSamesite()">Hash samesite</button>
               <button type="button" class="btn btn-warning" @click="updateData()">Reload data</button>
             </div>
           </td>
@@ -47,7 +48,7 @@
           <div class="card-body">
             <div>
               <span
-                :class="gallery.ID == gallery.SameSite ? 'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger' : 'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning'">
+                :class="gallery.ID == gallery.SameSite ? 'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger' : gallery.SameSite === 0 ? 'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info' :  'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning'">
                 {{ gallery.SameSite }}
               </span><a :href="gallery.URL" target="_blank">{{ gallery.URL }}</a>
             </div>
@@ -406,6 +407,18 @@ export default {
       }
     }
 
+    const hashSamesite = async () => {
+      const res = await axios.get(
+        `${import.meta.env.VITE_URL || ""}/api/samesite/hash`,
+      );
+      if (!res || res?.data.error) {
+        toast.error(res?.data?.error || 'Unknow error')
+      } else if (res?.data.status) {
+        toast.success("Success");
+        await updateData()
+      }
+    }
+
     watch(escape, (v) => {
       if (v) {
         modal.value = false
@@ -448,7 +461,8 @@ export default {
       runAgent,
       bookmarkdUrl,
       hiddenUrl,
-      checkSamesite
+      checkSamesite,
+      hashSamesite,
     }
   },
 

@@ -1,4 +1,4 @@
-module github.com/sensepost/gowitness
+module github.com/X-Cotang/gowitness-plus
 
 go 1.19
 

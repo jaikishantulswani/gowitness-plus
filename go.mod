@@ -1,4 +1,4 @@
-module github.com/X-Cotang/gowitness-plus
+module github.com/jaikishantulswani/gowitness-plus
 
 go 1.19
 
